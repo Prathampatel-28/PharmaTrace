@@ -1,0 +1,8 @@
+{
+  "name": "pharmatrace",
+  "version": "1.0.0",
+  "description": "PharmaTrace - Medicine Supply Chain Traceability",
+  "scripts": {
+    "start": "node backend/server.js"
+  }
+}

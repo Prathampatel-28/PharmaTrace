@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Verification – PharmaTrace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="manufacturer.html">Manufacturer</a></li>
+                <li><a href="retailer.html">Retailer</a></li>
+                <li><a class="active" href="customer.html">Customer</a></li>
+                <li><a href="ledger.html">Ledger</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="page-header">
+            <div>
+                <h1>📱 Customer Medicine Verification</h1>
+                <p>Scan the medicine QR code or enter its batch number to verify authenticity and track its journey.</p>
+            </div>
+        </header>
+
+        <div class="card">
+            <form id="searchForm">
+                <div class="form-group">
+                    <label for="batchNumber">Enter Medicine Batch Number</label>
+                    <input id="batchNumber" type="text" placeholder="e.g. PCM-2026-001" required>
+                </div>
+                <button class="btn" type="submit">Verify Medicine Authenticity</button>
+            </form>
+
+            <div id="message" class="alert" style="margin-top: 16px; display: none;"></div>
+        </div>
+
+        <div id="medicineResult" class="card" style="display: none; margin-top: 24px;">
+            <div class="card-title" id="medicineName">Medicine Name</div>
+            <div class="card-subtitle" id="batchInfo">Batch Number: ...</div>
+
+            <p style="margin-top: 12px;">
+                <strong>Current Supply Chain Status:</strong> 
+                <span id="currentStatus" class="status-badge status-pharmacy">Status</span>
+            </p>
+
+            <div class="form-row" style="margin-top: 18px;">
+                <p><strong>Manufacturing Date:</strong> <span id="mfgDate"></span></p>
+                <p><strong>Expiry Date:</strong> <span id="expDate"></span></p>
+            </div>
+
+            <h3 style="margin: 24px 0 12px; color: #0f172a;">📍 Tracking Journey</h3>
+            <div id="history"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2026 PharmaTrace • Customer Verification</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const messageBox = document.getElementById('message');
+        const resultCard = document.getElementById('medicineResult');
+        const batchInput = document.getElementById('batchNumber');
+
+        async function verifyBatch(batchNumber) {
+            messageBox.style.display = 'none';
+            resultCard.style.display = 'none';
+
+            try {
+                const medicine = await api('/api/medicines/batch/' + encodeURIComponent(batchNumber));
+
+                document.getElementById('medicineName').textContent = medicine.medicineName;
+                document.getElementById('batchInfo').textContent = 'Batch Number: ' + medicine.batchNumber;
+                const statusElem = document.getElementById('currentStatus');
+                statusElem.textContent = medicine.currentStatus;
+                statusElem.className = getStatusBadgeClass(medicine.currentStatus);
+                document.getElementById('mfgDate').textContent = medicine.mfgDate;
+                document.getElementById('expDate').textContent = medicine.expDate;
+
+                const historyBox = document.getElementById('history');
+                historyBox.innerHTML = '';
+
+                const checkpoints = (medicine.checkpoints || []).slice().reverse();
+
+                checkpoints.forEach(function (cp) {
+                    const card = document.createElement('div');
+                    card.className = 'batch-card';
+
+                    const title = document.createElement('strong');
+                    title.textContent = `${cp.stage} — ${cp.status}`;
+
+                    const details = document.createElement('p');
+                    const formattedDate = new Date(cp.timestamp).toLocaleString();
+                    details.textContent = `${cp.location || 'Location not specified'} | ${formattedDate}`;
+
+                    const note = document.createElement('p');
+                    note.style.color = '#64748b';
+                    note.textContent = cp.description || '';
+
+                    card.append(title, details, note);
+                    historyBox.appendChild(card);
+                });
+
+                resultCard.style.display = 'block';
+            } catch (error) {
+                showMessage(messageBox, error.message, 'error');
+            }
+        }
+
+        searchForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const enteredBatch = batchInput.value.trim();
+            if (enteredBatch) {
+                verifyBatch(enteredBatch);
+            }
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const medicineId = urlParams.get('id');
+
+        if (medicineId) {
+            api('/api/medicines/' + encodeURIComponent(medicineId))
+                .then(function (medicine) {
+                    batchInput.value = medicine.batchNumber;
+                    verifyBatch(medicine.batchNumber);
+                })
+                .catch(function (error) {
+                    showMessage(messageBox, error.message, 'error');
+                });
+        }
+    </script>
+</body>
+</html>

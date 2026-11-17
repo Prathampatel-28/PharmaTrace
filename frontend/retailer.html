@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retailer – PharmaTrace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="manufacturer.html">Manufacturer</a></li>
+                <li><a class="active" href="retailer.html">Retailer</a></li>
+                <li><a href="customer.html">Customer</a></li>
+                <li><a href="ledger.html">Ledger</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="page-header">
+            <div>
+                <h1>🏪 Retailer Portal</h1>
+                <p>Update the current status and location of a medicine batch in the supply chain</p>
+            </div>
+            <a class="btn btn-secondary" href="ledger.html">View Ledger</a>
+        </header>
+
+        <div class="card" style="max-width: 700px; margin: auto;">
+            <div class="card-title">Update Medicine Status</div>
+            <div class="card-subtitle">Select a registered batch, enter your pharmacy details, and record its latest stage.</div>
+
+            <div id="message" class="alert"></div>
+
+            <form id="retailerForm">
+                <div class="form-group">
+                    <label for="batchSelect">Select Medicine Batch</label>
+                    <select id="batchSelect" required>
+                        <option value="">Loading batches...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Current Status</label>
+                    <select id="status" required>
+                        <option value="Received">Received (Arrived at store)</option>
+                        <option value="In Stock">In Stock (Available for sale)</option>
+                        <option value="Sold">Sold (Dispensed to customer)</option>
+                        <option value="Recalled">Recalled (Safety alert / defective)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="retailerLocation">Retailer / Pharmacy Name & City</label>
+                    <input id="retailerLocation" type="text" placeholder="e.g. Apollo Pharmacy, Bilaspur" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="note">Update Note (Optional)</label>
+                    <input id="note" type="text" placeholder="e.g. Cold storage verified, added to shelf A-3">
+                </div>
+
+                <button class="btn btn-secondary btn-block" type="submit">Update Medicine Status</button>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2026 PharmaTrace • Retailer Module</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        const batchDropdown = document.getElementById('batchSelect');
+        const retailerForm = document.getElementById('retailerForm');
+        const messageBox = document.getElementById('message');
+
+        async function loadRetailerBatches() {
+            try {
+                const batches = await api('/api/medicines');
+                batchDropdown.innerHTML = '<option value="">-- Choose a medicine batch --</option>';
+
+                if (batches.length === 0) {
+                    batchDropdown.innerHTML = '<option value="">No batches registered yet. Register one first!</option>';
+                    return;
+                }
+
+                batches.forEach(function (batch) {
+                    const option = document.createElement('option');
+                    option.value = batch._id;
+                    option.textContent = `${batch.batchNumber} — ${batch.medicineName} [Current: ${batch.currentStatus}]`;
+                    batchDropdown.appendChild(option);
+                });
+            } catch (error) {
+                batchDropdown.innerHTML = '<option value="">Error loading batches from server</option>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadRetailerBatches);
+
+        retailerForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            messageBox.style.display = 'none';
+
+            const selectedBatchId = batchDropdown.value;
+            const updatePayload = {
+                status: document.getElementById('status').value,
+                location: document.getElementById('retailerLocation').value.trim(),
+                note: document.getElementById('note').value.trim()
+            };
+
+            try {
+                await api('/api/medicines/' + selectedBatchId + '/status', {
+                    method: 'PUT',
+                    body: JSON.stringify(updatePayload)
+                });
+
+                showMessage(messageBox, 'Medicine status updated successfully!', 'success');
+                retailerForm.reset();
+                await loadRetailerBatches();
+            } catch (error) {
+                showMessage(messageBox, error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+[
+  {
+    "_id": "e1770883d138c76a2e43d1e3",
+    "medicineName": "cancer medicine",
+    "batchNumber": "CAN-09",
+    "mfgDate": "2026-11-20",
+    "expDate": "2028-11-20",
+    "currentStatus": "Manufactured",
+    "checkpoints": [
+      {
+        "stage": "Manufacturer",
+        "status": "Manufactured",
+        "location": "Manufacturing facility",
+        "description": "Batch registered by manufacturer",
+        "timestamp": "2026-11-17T17:53:48.671Z"
+      }
+    ],
+    "createdAt": "2026-11-17T17:53:48.672Z"
+  },
+  {
+    "_id": "673aa1010000000000000001",
+    "medicineName": "Paracetamol 650mg",
+    "batchNumber": "PCM-2026-001",
+    "mfgDate": "2026-01-15",
+    "expDate": "2028-01-15",
+    "currentStatus": "In Stock",
+    "checkpoints": [
+      {
+        "stage": "Manufacturer",
+        "status": "Manufactured",
+        "location": "Apex Pharmaceuticals, Mumbai",
+        "description": "Batch registered and packaged",
+        "timestamp": "2026-01-15T10:00:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Received",
+        "location": "City Care Pharmacy, Delhi",
+        "description": "Shipment received in good condition",
+        "timestamp": "2026-01-20T14:30:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "In Stock",
+        "location": "City Care Pharmacy, Delhi",
+        "description": "Stock verified and placed on pharmacy shelves",
+        "timestamp": "2026-01-21T09:15:00.000Z"
+      }
+    ],
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "_id": "673aa1010000000000000002",
+    "medicineName": "Amoxicillin 500mg",
+    "batchNumber": "AMX-2026-042",
+    "mfgDate": "2026-02-01",
+    "expDate": "2027-08-01",
+    "currentStatus": "Manufactured",
+    "checkpoints": [
+      {
+        "stage": "Manufacturer",
+        "status": "Manufactured",
+        "location": "Cipla Manufacturing Unit, Goa",
+        "description": "Batch produced and quality approved",
+        "timestamp": "2026-02-01T11:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-02-01T11:00:00.000Z"
+  }
+]

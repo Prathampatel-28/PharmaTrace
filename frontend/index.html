@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaTrace – Medicine Supply Chain Traceability</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
+            <ul class="nav-links">
+                <li><a class="active" href="index.html">Home</a></li>
+                <li><a href="manufacturer.html">Manufacturer</a></li>
+                <li><a href="retailer.html">Retailer</a></li>
+                <li><a href="customer.html">Customer</a></li>
+                <li><a href="ledger.html">Ledger</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container" style="margin-top: 32px;">
+        <section class="hero-card">
+            <h2>Medicine Supply Chain Traceability</h2>
+            <p>Register medicine batches, track retailer updates, and verify medicine details using a QR code.</p>
+        </section>
+
+        <div style="display: flex; gap: 16px; margin: 24px 0; flex-wrap: wrap;">
+            <div class="card" style="flex: 1; min-width: 180px;">
+                <b>Total Medicine Batches</b>
+                <h2 id="totalBatchesCount">0</h2>
+            </div>
+            <div class="card" style="flex: 1; min-width: 180px;">
+                <b>Tracking Updates</b>
+                <h2 id="totalCheckpointsCount">0</h2>
+            </div>
+        </div>
+
+        <h2 style="margin: 20px 0;">Select Portal</h2>
+        <div class="portal-navigation-grid">
+            <a class="nav-card" href="manufacturer.html">
+                <div>
+                    <div class="nav-card-icon">🏭</div>
+                    <div class="nav-card-title">Manufacturer</div>
+                    <div class="nav-card-desc">Register medicine name, batch number, manufacturing date, and expiry date. Generate a QR code.</div>
+                </div>
+                <div class="nav-card-link">Open Manufacturer →</div>
+            </a>
+
+            <a class="nav-card" href="retailer.html">
+                <div>
+                    <div class="nav-card-icon">🏪</div>
+                    <div class="nav-card-title">Retailer</div>
+                    <div class="nav-card-desc">Find a batch and update its current status and retail location.</div>
+                </div>
+                <div class="nav-card-link">Open Retailer →</div>
+            </a>
+
+            <a class="nav-card" href="customer.html">
+                <div>
+                    <div class="nav-card-icon">📱</div>
+                    <div class="nav-card-title">Customer Verification</div>
+                    <div class="nav-card-desc">Scan a medicine QR code or enter a batch number to view its details and tracking history.</div>
+                </div>
+                <div class="nav-card-link">Verify Medicine →</div>
+            </a>
+
+            <a class="nav-card" href="ledger.html">
+                <div>
+                    <div class="nav-card-icon">📜</div>
+                    <div class="nav-card-title">Medicine Ledger</div>
+                    <div class="nav-card-desc">View all registered batches and their latest status in one public record.</div>
+                </div>
+                <div class="nav-card-link">Open Ledger →</div>
+            </a>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2026 PharmaTrace • Medicine Traceability Prototype</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', updateDashboardStats);
+    </script>
+</body>
+</html>
