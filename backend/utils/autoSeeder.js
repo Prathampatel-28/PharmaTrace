@@ -4,8 +4,12 @@ const User = require('../models/User');
 const Medicine = require('../models/Medicine');
 const TrackingHistory = require('../models/TrackingHistory');
 const QRVerification = require('../models/QRVerification');
+const { isMongoConnected } = require('../config/db');
 
 async function autoSeed() {
+    if (!isMongoConnected()) {
+        return;
+    }
     try {
         const adminEmail = (process.env.ADMIN_EMAIL || 'admin@pharmatrace.com').toLowerCase();
         let admin = await User.findOne({ email: adminEmail });

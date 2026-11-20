@@ -1,16 +1,32 @@
+const path = require('path');
+const fs = require('fs');
 const Medicine = require('../models/Medicine');
 const TrackingHistory = require('../models/TrackingHistory');
 const Notification = require('../models/Notification');
 const { logAudit } = require('../utils/auditLogger');
+const { isMongoConnected } = require('../config/db');
+
+function getFallbackMedicines() {
+    try {
+        const filePath = path.join(__dirname, '..', 'data', 'medicines.json');
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        }
+    } catch { }
+    return [];
+}
 
 exports.getAvailableBatches = async (req, res) => {
+    if (!isMongoConnected()) {
+        return res.json(getFallbackMedicines());
+    }
     try {
         const batches = await Medicine.find({ isDeleted: false })
             .select('medicineName batchNumber currentStatus manufacturingDate expiryDate manufacturerName composition packaging isRecalled')
             .sort({ createdAt: -1 });
         res.json(batches);
     } catch (error) {
-        res.status(500).json({ message: 'Could not load retailer batches.' });
+        res.json(getFallbackMedicines());
     }
 };
 

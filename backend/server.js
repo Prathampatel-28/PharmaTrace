@@ -36,8 +36,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Serverless Database Connection & Initialization Middleware
+let isInitialized = false;
+app.use(async (_req, _res, next) => {
+    if (!isInitialized) {
+        try {
+            await connectDB();
+            await autoSeed();
+            isInitialized = true;
+        } catch (e) {
+            console.error('Initialization error:', e);
+        }
+    }
+    next();
+});
+
 // Serve Static Frontend Assets
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+// Explicit Root Route
+app.get('/', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+});
 
 // Mount API Routes with Rate Limiter
 app.use('/api/', apiLimiter);
@@ -72,6 +92,7 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
     await connectDB();
     await autoSeed();
+    isInitialized = true;
 
     app.listen(PORT, () => {
         console.log(`\n===============================================================`);
@@ -81,4 +102,9 @@ async function startServer() {
     });
 }
 
-startServer();
+// In local environment, start HTTP server when run directly; in Vercel serverless, export app
+if (require.main === module && !process.env.VERCEL) {
+    startServer();
+}
+
+module.exports = app;

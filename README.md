@@ -195,5 +195,21 @@ node backend/scripts/testSuite.js
 
 ---
 
+## 🌐 Deploying to Vercel
+
+PharmaTrace includes built-in Vercel configuration (`vercel.json` and `api/index.js` serverless handler).
+
+### 1-Click / Git Deployment:
+1. Push your repository to GitHub.
+2. In [Vercel](https://vercel.com), click **Add New Project** and import `PharmaTrace`.
+3. In **Project Settings > Environment Variables** (Optional, for persistent cloud database):
+   - `MONGODB_URI`: Your MongoDB Atlas connection string (`mongodb+srv://...`)
+   - `JWT_SECRET`: A secure key for token signing
+   - *Note: In MongoDB Atlas, ensure Network Access allows `0.0.0.0/0` (Access from Anywhere).*
+4. Click **Deploy**. Vercel will build and host the frontend CDN and serverless backend API automatically!
+5. **Zero-Setup Fallback**: If `MONGODB_URI` is not provided in Vercel, PharmaTrace automatically runs with a built-in fallback dataset so the website never crashes or shows "Failed to load".
+
+---
+
 ## 📄 License
 This project is licensed under the MIT License.

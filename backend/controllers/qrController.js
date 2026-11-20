@@ -1,10 +1,52 @@
+const path = require('path');
+const fs = require('fs');
 const Medicine = require('../models/Medicine');
 const QRVerification = require('../models/QRVerification');
 const TrackingHistory = require('../models/TrackingHistory');
+const { isMongoConnected } = require('../config/db');
+
+function getFallbackMedicines() {
+    try {
+        const filePath = path.join(__dirname, '..', 'data', 'medicines.json');
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        }
+    } catch { }
+    return [];
+}
 
 exports.verifyToken = async (req, res) => {
     try {
         const tokenOrId = req.params.token.trim();
+
+        if (!isMongoConnected()) {
+            const list = getFallbackMedicines();
+            const found = list.find(m => m.batchNumber === tokenOrId.toUpperCase() || m._id === tokenOrId);
+            if (found) {
+                return res.json({
+                    isAuthentic: true,
+                    medicine: {
+                        ...found,
+                        manufacturingDate: found.mfgDate,
+                        expiryDate: found.expDate,
+                        isExpired: new Date(found.expDate) < new Date(),
+                        verificationToken: found._id,
+                        checkpoints: found.checkpoints || []
+                    },
+                    scanCount: 1,
+                    lastScannedAt: new Date(),
+                    trackingHistory: (found.checkpoints || []).map(cp => ({
+                        ...cp,
+                        newStatus: cp.status,
+                        updaterName: cp.location,
+                        userRole: cp.stage ? cp.stage.toLowerCase() : 'system'
+                    })),
+                    retailerActionsAvailable: req.user ? ['retailer', 'admin'].includes(req.user.role) : false,
+                    userRole: req.user ? req.user.role : 'anonymous'
+                });
+            }
+            return res.status(404).json({ isAuthentic: false, message: 'Invalid verification token.' });
+        }
 
         // 1. Look up by verificationToken, OR by _id, OR by batchNumber
         const query = {
@@ -83,7 +125,32 @@ exports.verifyToken = async (req, res) => {
             userRole: req.user ? req.user.role : 'anonymous'
         });
     } catch (error) {
-        console.error('QR verification error:', error);
-        res.status(500).json({ message: 'Error verifying medicine batch.' });
+        console.error('QR verification error, checking fallback dataset:', error.message);
+        const list = getFallbackMedicines();
+        const found = list.find(m => m.batchNumber === tokenOrId.toUpperCase() || m._id === tokenOrId);
+        if (found) {
+            return res.json({
+                isAuthentic: true,
+                medicine: {
+                    ...found,
+                    manufacturingDate: found.mfgDate,
+                    expiryDate: found.expDate,
+                    isExpired: new Date(found.expDate) < new Date(),
+                    verificationToken: found._id,
+                    checkpoints: found.checkpoints || []
+                },
+                scanCount: 1,
+                lastScannedAt: new Date(),
+                trackingHistory: (found.checkpoints || []).map(cp => ({
+                    ...cp,
+                    newStatus: cp.status,
+                    updaterName: cp.location,
+                    userRole: cp.stage ? cp.stage.toLowerCase() : 'system'
+                })),
+                retailerActionsAvailable: req.user ? ['retailer', 'admin'].includes(req.user.role) : false,
+                userRole: req.user ? req.user.role : 'anonymous'
+            });
+        }
+        res.status(404).json({ isAuthentic: false, message: 'Invalid verification token.' });
     }
 };
