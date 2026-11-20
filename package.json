@@ -4,6 +4,7 @@
   "description": "PharmaTrace - Advanced Pharmaceutical Supply Chain & Medicine Authentication System",
   "scripts": {
     "start": "node backend/server.js",
+    "test": "node backend/scripts/testSuite.js",
     "seed": "node backend/scripts/seedAdmin.js"
   }
 }
