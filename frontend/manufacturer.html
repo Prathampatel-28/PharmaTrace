@@ -3,121 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manufacturer – PharmaTrace</title>
+    <title>Manufacturer Portal – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a class="active" href="manufacturer.html">Manufacturer</a></li>
-                <li><a href="retailer.html">Retailer</a></li>
-                <li><a href="customer.html">Customer</a></li>
-                <li><a href="ledger.html">Ledger</a></li>
-            </ul>
-        </div>
-    </nav>
+    <nav class="navbar"></nav>
 
     <main class="container">
         <header class="page-header">
             <div>
-                <h1>🏭 Manufacturer Portal</h1>
-                <p>Register a new medicine batch and generate its authenticity QR code</p>
+                <h1>🏭 Manufacturer Production Portal</h1>
+                <p>Register certified medicine batches, generate cryptographic QR verification tokens, and print compliance labels</p>
             </div>
-            <a class="btn btn-secondary" href="ledger.html">View Ledger</a>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="loadMyBatches()">🔄 Refresh</button>
+                <a class="btn" href="#registerSection">+ New Batch</a>
+            </div>
         </header>
 
-        <div class="card" style="max-width: 700px; margin: auto;">
-            <div class="card-title">Register Medicine Batch</div>
-            <div class="card-subtitle">Enter medicine details to save the batch and generate a QR code.</div>
+        <!-- Metric Summary for Manufacturer -->
+        <div class="stats-grid">
+            <div class="metric-card">
+                <div class="metric-icon-box icon-amber">📦</div>
+                <div class="metric-info"><b>My Batches</b><h2 id="mfgTotalBatches">0</h2></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon-box icon-green">✅</div>
+                <div class="metric-info"><b>In Distribution</b><h2 id="mfgInStock">0</h2></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon-box icon-purple">🏷️</div>
+                <div class="metric-info"><b>Dispensed / Sold</b><h2 id="mfgSold">0</h2></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon-box icon-red">⚠️</div>
+                <div class="metric-info"><b>Recalled Batches</b><h2 id="mfgRecalled">0</h2></div>
+            </div>
+        </div>
 
-            <div id="message" class="alert"></div>
+        <div id="mfgAlert" class="alert"></div>
+
+        <!-- 1. MY BATCHES TABLE -->
+        <div class="card">
+            <div class="card-title">Registered Production Batches</div>
+            <div class="card-subtitle">List of pharmaceutical batches registered under your certified manufacturer license.</div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Batch No.</th>
+                            <th>Medicine & Generic Name</th>
+                            <th>Dosage & Packaging</th>
+                            <th>Quantity</th>
+                            <th>Mfg / Exp Date</th>
+                            <th>Status</th>
+                            <th>QR & Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myBatchesTableBody">
+                        <tr><td colspan="7" style="text-align:center;padding:24px;">Loading your production batches...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. REGISTER NEW MEDICINE BATCH FORM -->
+        <div id="registerSection" class="card" style="max-width: 850px; margin: 30px auto;">
+            <div class="card-title">Register New Medicine Batch</div>
+            <div class="card-subtitle">All batches are cryptographically sealed into MongoDB with a unique verification token.</div>
+
+            <div id="regMessage" class="alert"></div>
 
             <form id="manufacturerForm">
-                <div class="form-group">
-                    <label for="medicineName">Medicine Name & Strength</label>
-                    <input id="medicineName" type="text" placeholder="e.g. Paracetamol 650mg" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="batchNumber">Batch Number (Unique)</label>
-                    <input id="batchNumber" type="text" placeholder="e.g. PCM-2026-001" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="medicineName">Medicine Commercial Name *</label>
+                        <input id="medicineName" type="text" placeholder="e.g. Paracetamol 650mg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genericName">Generic / Chemical Name</label>
+                        <input id="genericName" type="text" placeholder="e.g. Paracetamol IP">
+                    </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="mfgDate">Manufacturing Date</label>
+                        <label for="batchNumber">Unique Batch Number *</label>
+                        <input id="batchNumber" type="text" placeholder="e.g. PCM-2026-009" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="licenseNumber">Drug Manufacturing License No.</label>
+                        <input id="licenseNumber" type="text" placeholder="e.g. MFG/FDA/2026/0891">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="mfgDate">Manufacturing Date *</label>
                         <input id="mfgDate" type="date" required>
                     </div>
-
                     <div class="form-group">
-                        <label for="expDate">Expiry Date</label>
+                        <label for="expDate">Expiry Date *</label>
                         <input id="expDate" type="date" required>
                     </div>
                 </div>
 
-                <button class="btn btn-block" type="submit">Register Batch & Generate QR</button>
-            </form>
-
-            <div id="qrResult" style="display: none; margin-top: 24px; text-align: center;">
-                <h3>Medicine Verification QR Code</h3>
-                <p id="qrBatchText" style="color: #64748b; margin-bottom: 12px;"></p>
-                
-                <img id="qrImage" alt="Medicine verification QR code" style="width: 220px; height: 220px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; padding: 8px; background: #fff;">
-                
-                <p style="margin-top: 12px;">
-                    <a id="customerLink" target="_blank" rel="noopener">Open Customer Verification Page ↗</a>
-                </p>
-
-                <div style="margin-top: 16px;">
-                    <a id="downloadQr" class="btn btn-secondary" download="medicine-qr.png">Download QR Code</a>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dosage">Dosage Information</label>
+                        <input id="dosage" type="text" placeholder="e.g. 650mg oral tablet every 6 hours">
+                    </div>
+                    <div class="form-group">
+                        <label for="packaging">Packaging Format</label>
+                        <input id="packaging" type="text" placeholder="e.g. Blister pack of 15 tablets">
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity Manufactured</label>
+                        <input id="quantity" type="number" value="1000" min="1">
+                    </div>
                 </div>
-            </div>
+
+                <div class="form-group">
+                    <label for="composition">Active Ingredients & Composition</label>
+                    <input id="composition" type="text" placeholder="e.g. Each uncoated tablet contains: Paracetamol IP 650mg">
+                </div>
+
+                <div class="form-group">
+                    <label for="storageInstructions">Storage & Handling Instructions</label>
+                    <input id="storageInstructions" type="text" value="Store in a cool, dry place below 25°C. Protect from light.">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Production Batch Description / Quality Notes</label>
+                    <textarea id="description" rows="2" placeholder="Quality approval notes, sterile cleanroom batch reference..."></textarea>
+                </div>
+
+                <button class="btn btn-block" type="submit">Register Batch & Generate Cryptographic QR</button>
+            </form>
         </div>
     </main>
 
+    <!-- QR & Print Label Modal -->
+    <div id="qrModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Medicine Packaging Label & QR</h3>
+                <button class="modal-close" onclick="closeModal('qrModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div id="printLabelArea" style="border: 2px dashed #0284c7; border-radius: 10px; padding: 20px; background: #fff; margin-bottom: 18px;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">PharmaTrace Authenticated Medicine</div>
+                    <h2 id="modalMedName" style="font-size: 1.3rem; color: #0f172a; margin-bottom: 4px;">Paracetamol 650mg</h2>
+                    <div id="modalGeneric" style="color: #64748b; font-size: 0.85rem; margin-bottom: 12px;">Paracetamol IP</div>
+                    
+                    <img id="modalQrImg" alt="QR Code" style="width: 220px; height: 220px; object-fit: contain; margin: 0 auto; display: block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px;">
+
+                    <div style="margin-top: 14px; font-size: 0.85rem; line-height: 1.5; color: #334155;">
+                        <div><b>Batch No:</b> <span id="modalBatch"></span></div>
+                        <div><b>Mfg Date:</b> <span id="modalMfg"></span> | <b>Exp Date:</b> <span id="modalExp"></span></div>
+                        <div id="modalStorage" style="font-size: 0.75rem; color: #64748b; margin-top: 4px;"></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <a id="modalDownloadBtn" class="btn btn-secondary btn-sm" download="medicine-qr.png">💾 Download PNG</a>
+                    <button class="btn btn-sm" onclick="window.print()">🖨️ Print Label</button>
+                    <a id="modalVerifyLink" class="btn btn-secondary btn-sm" target="_blank">🔗 Test Scan</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <p>© 2026 PharmaTrace • Manufacturer Module</p>
+        <p>© 2026 PharmaTrace • Certified Manufacturer Portal</p>
     </footer>
 
     <script src="script.js"></script>
     <script>
-        const form = document.getElementById('manufacturerForm');
-        const messageBox = document.getElementById('message');
-        const qrSection = document.getElementById('qrResult');
+        let myBatches = [];
 
-        form.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            messageBox.style.display = 'none';
+        async function loadMyBatches() {
+            const tbody = document.getElementById('myBatchesTableBody');
+            try {
+                myBatches = await api('/api/medicines/my/batches');
 
-            const medicineData = {
+                document.getElementById('mfgTotalBatches').textContent = myBatches.length;
+                document.getElementById('mfgInStock').textContent = myBatches.filter(b => b.currentStatus === 'In Stock').length;
+                document.getElementById('mfgSold').textContent = myBatches.filter(b => b.currentStatus === 'Sold').length;
+                document.getElementById('mfgRecalled').textContent = myBatches.filter(b => b.currentStatus === 'Recalled').length;
+
+                if (myBatches.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;">No batches registered yet. Use the form below to register your first pharmaceutical batch.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = myBatches.map(b => `
+                    <tr>
+                        <td><b>${b.batchNumber}</b></td>
+                        <td>${b.medicineName}<br><span style="color:#64748b;font-size:0.8rem;">${b.genericName || ''}</span></td>
+                        <td>${b.dosage || 'Standard'}<br><span style="color:#94a3b8;font-size:0.75rem;">${b.packaging}</span></td>
+                        <td>${b.quantity || 1000}</td>
+                        <td>Mfg: ${b.manufacturingDate || b.mfgDate}<br>Exp: ${b.expiryDate || b.expDate}</td>
+                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                        <td>
+                            <button class="btn-sm btn-secondary" onclick="viewBatchQr('${b._id}')">📱 Label & QR</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444;text-align:center;">Failed to load batches: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function viewBatchQr(id) {
+            try {
+                const b = myBatches.find(x => x._id === id);
+                const qr = await api(`/api/medicines/${id}/qr`);
+
+                document.getElementById('modalMedName').textContent = b ? b.medicineName : qr.medicineName;
+                document.getElementById('modalGeneric').textContent = b?.genericName || '';
+                document.getElementById('modalBatch').textContent = b?.batchNumber || qr.batchNumber;
+                document.getElementById('modalMfg').textContent = b?.manufacturingDate || b?.mfgDate || '';
+                document.getElementById('modalExp').textContent = b?.expiryDate || b?.expDate || '';
+                document.getElementById('modalStorage').textContent = b?.storageInstructions || '';
+
+                document.getElementById('modalQrImg').src = qr.qrCode;
+                document.getElementById('modalDownloadBtn').href = qr.qrCode;
+                document.getElementById('modalDownloadBtn').download = `qr-${b?.batchNumber || 'medicine'}.png`;
+                document.getElementById('modalVerifyLink').href = qr.verificationUrl;
+
+                openModal('qrModal');
+            } catch (err) {
+                alert('Could not generate QR: ' + err.message);
+            }
+        }
+
+        document.getElementById('manufacturerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('regMessage');
+            msg.style.display = 'none';
+
+            const payload = {
                 medicineName: document.getElementById('medicineName').value.trim(),
+                genericName: document.getElementById('genericName').value.trim(),
                 batchNumber: document.getElementById('batchNumber').value.trim(),
-                mfgDate: document.getElementById('mfgDate').value,
-                expDate: document.getElementById('expDate').value
+                licenseNumber: document.getElementById('licenseNumber').value.trim(),
+                manufacturingDate: document.getElementById('mfgDate').value,
+                expiryDate: document.getElementById('expDate').value,
+                dosage: document.getElementById('dosage').value.trim(),
+                packaging: document.getElementById('packaging').value.trim(),
+                quantity: document.getElementById('quantity').value,
+                composition: document.getElementById('composition').value.trim(),
+                storageInstructions: document.getElementById('storageInstructions').value.trim(),
+                description: document.getElementById('description').value.trim()
             };
 
             try {
-                const savedMedicine = await api('/api/medicines', {
+                const saved = await api('/api/medicines', {
                     method: 'POST',
-                    body: JSON.stringify(medicineData)
+                    body: JSON.stringify(payload)
                 });
-
-                const qrResponse = await api('/api/medicines/' + savedMedicine._id + '/qr');
-
-                document.getElementById('qrImage').src = qrResponse.qrCode;
-                document.getElementById('downloadQr').href = qrResponse.qrCode;
-                document.getElementById('customerLink').href = qrResponse.verificationUrl;
-                document.getElementById('qrBatchText').textContent = 'Batch: ' + savedMedicine.batchNumber;
-                qrSection.style.display = 'block';
-
-                showMessage(messageBox, 'Batch registered successfully! QR code is ready below.', 'success');
-                form.reset();
-            } catch (error) {
-                showMessage(messageBox, error.message, 'error');
+                showMessage(msg, `Batch ${saved.batchNumber} successfully registered! Opening label and QR code...`, 'success');
+                document.getElementById('manufacturerForm').reset();
+                await loadMyBatches();
+                viewBatchQr(saved._id);
+            } catch (err) {
+                showMessage(msg, err.message, 'error');
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await requireAuth(['manufacturer', 'admin']);
+            if (!user) return;
+            renderNavbar('manufacturer');
+            if (user.licenseNumber) document.getElementById('licenseNumber').value = user.licenseNumber;
+            loadMyBatches();
         });
     </script>
 </body>

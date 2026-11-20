@@ -3,127 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retailer – PharmaTrace</title>
+    <title>Retailer Portal – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
+    <!-- html5-qrcode for live mobile camera & webcam QR scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="manufacturer.html">Manufacturer</a></li>
-                <li><a class="active" href="retailer.html">Retailer</a></li>
-                <li><a href="customer.html">Customer</a></li>
-                <li><a href="ledger.html">Ledger</a></li>
-            </ul>
-        </div>
-    </nav>
+    <nav class="navbar"></nav>
 
     <main class="container">
         <header class="page-header">
             <div>
-                <h1>🏪 Retailer Portal</h1>
-                <p>Update the current status and location of a medicine batch in the supply chain</p>
+                <h1>🏪 Retail Pharmacy & Distribution Portal</h1>
+                <p>Receive verified pharmaceutical stock, scan packaging QR codes, and log retail distribution stages</p>
             </div>
-            <a class="btn btn-secondary" href="ledger.html">View Ledger</a>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="openScannerModal()">📷 Scan QR Code</button>
+                <button class="btn" onclick="loadRetailerData()">🔄 Refresh</button>
+            </div>
         </header>
 
-        <div class="card" style="max-width: 700px; margin: auto;">
-            <div class="card-title">Update Medicine Status</div>
-            <div class="card-subtitle">Select a registered batch, enter your pharmacy details, and record its latest stage.</div>
+        <div id="retailerAlert" class="alert"></div>
 
-            <div id="message" class="alert"></div>
+        <!-- Metric summary -->
+        <div class="stats-grid">
+            <div class="metric-card">
+                <div class="metric-icon-box icon-blue">📦</div>
+                <div class="metric-info"><b>Available Batches</b><h2 id="retAvailCount">0</h2></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon-box icon-green">🏪</div>
+                <div class="metric-info"><b>In My Stock</b><h2 id="retInStockCount">0</h2></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon-box icon-purple">🏷️</div>
+                <div class="metric-info"><b>Sold to Patients</b><h2 id="retSoldCount">0</h2></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon-box icon-red">⚠️</div>
+                <div class="metric-info"><b>Recalled Batches</b><h2 id="retRecalledCount">0</h2></div>
+            </div>
+        </div>
 
-            <form id="retailerForm">
-                <div class="form-group">
-                    <label for="batchSelect">Select Medicine Batch</label>
-                    <select id="batchSelect" required>
-                        <option value="">Loading batches...</option>
-                    </select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 10px;" class="retailer-grid">
+            <!-- 1. STATUS UPDATE FORM -->
+            <div class="card">
+                <div class="card-title">Update Medicine Stage</div>
+                <div class="card-subtitle">Select or scan a batch to record receipt, shelf placement, patient sale, or safety quarantine.</div>
+
+                <div id="updateMsg" class="alert"></div>
+
+                <form id="retailerForm">
+                    <div class="form-group">
+                        <label for="batchSelect">Selected Medicine Batch</label>
+                        <select id="batchSelect" required>
+                            <option value="">Loading batches...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Supply Chain Stage Update</label>
+                        <select id="status" required>
+                            <option value="Received">Received (Shipment arrived, packaging verified)</option>
+                            <option value="In Stock">In Stock (Placed on pharmacy shelf ready for sale)</option>
+                            <option value="Sold">Sold (Dispensed against customer prescription)</option>
+                            <option value="Recalled">Recalled (Quarantined due to safety / audit alert)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="retailerLocation">Retailer / Pharmacy Location *</label>
+                        <input id="retailerLocation" type="text" placeholder="e.g. Apollo Care Pharmacy, Bilaspur Outlet #4" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="note">Transaction Remarks / Audit Note *</label>
+                        <input id="note" type="text" placeholder="e.g. Temperature checked (21°C), placed in A-Row shelf" required>
+                    </div>
+
+                    <button class="btn btn-secondary btn-block" type="submit">Log Status Change in Blockchain Ledger</button>
+                </form>
+            </div>
+
+            <!-- 2. RETAILER'S TRANSACTION HISTORY -->
+            <div class="card">
+                <div class="card-title">Recent Stock Actions</div>
+                <div class="card-subtitle">Audit history of transactions performed by your authenticated pharmacy account.</div>
+
+                <div class="table-container" style="max-height: 420px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Batch</th>
+                                <th>Status</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="retHistoryBody">
+                            <tr><td colspan="4" style="text-align:center;padding:20px;">Loading your transactions...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+        </div>
 
-                <div class="form-group">
-                    <label for="status">Current Status</label>
-                    <select id="status" required>
-                        <option value="Received">Received (Arrived at store)</option>
-                        <option value="In Stock">In Stock (Available for sale)</option>
-                        <option value="Sold">Sold (Dispensed to customer)</option>
-                        <option value="Recalled">Recalled (Safety alert / defective)</option>
-                    </select>
-                </div>
+        <!-- 3. AVAILABLE PHARMACEUTICAL STOCK TABLE -->
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-title">Pharmaceutical Stock Overview</div>
+            <div class="card-subtitle">Verified batches in distribution and circulation.</div>
 
-                <div class="form-group">
-                    <label for="retailerLocation">Retailer / Pharmacy Name & City</label>
-                    <input id="retailerLocation" type="text" placeholder="e.g. Apollo Pharmacy, Bilaspur" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="note">Update Note (Optional)</label>
-                    <input id="note" type="text" placeholder="e.g. Cold storage verified, added to shelf A-3">
-                </div>
-
-                <button class="btn btn-secondary btn-block" type="submit">Update Medicine Status</button>
-            </form>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Batch No.</th>
+                            <th>Medicine Name</th>
+                            <th>Manufacturer</th>
+                            <th>Expiry Date</th>
+                            <th>Current Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody">
+                        <tr><td colspan="6" style="text-align:center;padding:20px;">Loading stock...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
+    <!-- Camera QR Scanner Modal -->
+    <div id="scannerModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>📷 Live Camera QR Scanner</h3>
+                <button class="modal-close" onclick="closeScannerModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 14px;">
+                    Point your camera at the medicine packaging QR code to automatically select the batch.
+                </p>
+                <div id="qrReader" class="scanner-viewport"></div>
+                <div id="scannerResult" style="margin-top: 14px; font-weight: 700; color: #0284c7;"></div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-secondary btn-sm" onclick="closeScannerModal()">Cancel & Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <p>© 2026 PharmaTrace • Retailer Module</p>
+        <p>© 2026 PharmaTrace • Retail Pharmacy Module</p>
     </footer>
 
     <script src="script.js"></script>
     <script>
-        const batchDropdown = document.getElementById('batchSelect');
-        const retailerForm = document.getElementById('retailerForm');
-        const messageBox = document.getElementById('message');
+        let availableBatches = [];
+        let html5QrScanner = null;
 
-        async function loadRetailerBatches() {
+        async function loadRetailerData() {
+            const select = document.getElementById('batchSelect');
+            const stockBody = document.getElementById('stockTableBody');
+            const historyBody = document.getElementById('retHistoryBody');
+
             try {
-                const batches = await api('/api/medicines');
-                batchDropdown.innerHTML = '<option value="">-- Choose a medicine batch --</option>';
+                availableBatches = await api('/api/retailer/batches');
 
-                if (batches.length === 0) {
-                    batchDropdown.innerHTML = '<option value="">No batches registered yet. Register one first!</option>';
-                    return;
-                }
+                document.getElementById('retAvailCount').textContent = availableBatches.length;
+                document.getElementById('retInStockCount').textContent = availableBatches.filter(b => b.currentStatus === 'In Stock').length;
+                document.getElementById('retSoldCount').textContent = availableBatches.filter(b => b.currentStatus === 'Sold').length;
+                document.getElementById('retRecalledCount').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled').length;
 
-                batches.forEach(function (batch) {
-                    const option = document.createElement('option');
-                    option.value = batch._id;
-                    option.textContent = `${batch.batchNumber} — ${batch.medicineName} [Current: ${batch.currentStatus}]`;
-                    batchDropdown.appendChild(option);
+                select.innerHTML = '<option value="">-- Choose a medicine batch --</option>';
+                availableBatches.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b._id;
+                    opt.textContent = `${b.batchNumber} — ${b.medicineName} [${b.currentStatus}]`;
+                    if (b.currentStatus === 'Recalled') opt.style.color = '#ef4444';
+                    select.appendChild(opt);
                 });
-            } catch (error) {
-                batchDropdown.innerHTML = '<option value="">Error loading batches from server</option>';
+
+                stockBody.innerHTML = availableBatches.map(b => `
+                    <tr>
+                        <td><b>${b.batchNumber}</b></td>
+                        <td>${b.medicineName}</td>
+                        <td>${b.manufacturerName}</td>
+                        <td>${b.expiryDate}</td>
+                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                        <td>
+                            <button class="btn-sm btn-secondary" onclick="selectBatchForUpdate('${b._id}')">Select</button>
+                            <a href="customer.html?token=${b.batchNumber}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Load retailer history
+                const hist = await api('/api/retailer/history');
+                if (!hist || hist.length === 0) {
+                    historyBody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;">No transactions logged yet.</td></tr>';
+                } else {
+                    historyBody.innerHTML = hist.map(h => `
+                        <tr>
+                            <td>${new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td><b>${h.batchNumber}</b></td>
+                            <td><span class="${getStatusBadgeClass(h.newStatus)}">${h.newStatus}</span></td>
+                            <td>${h.location || '—'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadRetailerBatches);
+        function selectBatchForUpdate(id) {
+            const select = document.getElementById('batchSelect');
+            select.value = id;
+            document.getElementById('retailerForm').scrollIntoView({ behavior: 'smooth' });
+        }
 
-        retailerForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            messageBox.style.display = 'none';
+        document.getElementById('retailerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('updateMsg');
+            msg.style.display = 'none';
 
-            const selectedBatchId = batchDropdown.value;
-            const updatePayload = {
+            const batchId = document.getElementById('batchSelect').value;
+            if (!batchId) {
+                showMessage(msg, 'Please choose a medicine batch from the dropdown.', 'error');
+                return;
+            }
+
+            const payload = {
                 status: document.getElementById('status').value,
                 location: document.getElementById('retailerLocation').value.trim(),
                 note: document.getElementById('note').value.trim()
             };
 
             try {
-                await api('/api/medicines/' + selectedBatchId + '/status', {
+                await api(`/api/retailer/status/${batchId}`, {
                     method: 'PUT',
-                    body: JSON.stringify(updatePayload)
+                    body: JSON.stringify(payload)
                 });
-
-                showMessage(messageBox, 'Medicine status updated successfully!', 'success');
-                retailerForm.reset();
-                await loadRetailerBatches();
-            } catch (error) {
-                showMessage(messageBox, error.message, 'error');
+                showMessage(msg, `Medicine status updated to "${payload.status}" successfully!`, 'success');
+                document.getElementById('note').value = '';
+                await loadRetailerData();
+            } catch (err) {
+                showMessage(msg, err.message, 'error');
             }
+        });
+
+        // Live Camera Scanner
+        function openScannerModal() {
+            openModal('scannerModal');
+            document.getElementById('scannerResult').textContent = '';
+
+            if (!html5QrScanner) {
+                html5QrScanner = new Html5Qrcode("qrReader");
+            }
+
+            html5QrScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    handleDecodedQr(decodedText);
+                },
+                () => {}
+            ).catch(err => {
+                document.getElementById('scannerResult').textContent = 'Camera error: ' + err;
+            });
+        }
+
+        function closeScannerModal() {
+            if (html5QrScanner) {
+                html5QrScanner.stop().catch(() => {}).finally(() => {
+                    closeModal('scannerModal');
+                });
+            } else {
+                closeModal('scannerModal');
+            }
+        }
+
+        function handleDecodedQr(urlOrToken) {
+            try {
+                let token = urlOrToken;
+                if (urlOrToken.includes('token=')) {
+                    token = new URL(urlOrToken).searchParams.get('token');
+                } else if (urlOrToken.includes('id=')) {
+                    token = new URL(urlOrToken).searchParams.get('id');
+                }
+
+                document.getElementById('scannerResult').textContent = '✅ Scanned: ' + token;
+
+                // Match with available batches
+                const match = availableBatches.find(b => b.verificationToken === token || b._id === token || b.batchNumber === token.toUpperCase());
+                if (match) {
+                    selectBatchForUpdate(match._id);
+                    closeScannerModal();
+                } else {
+                    alert(`Scanned batch (${token}) identified. Opening verification...`);
+                    window.location.href = `customer.html?token=${encodeURIComponent(token)}`;
+                }
+            } catch {
+                document.getElementById('scannerResult').textContent = 'Scanned: ' + urlOrToken;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await requireAuth(['retailer', 'admin']);
+            if (!user) return;
+            renderNavbar('retailer');
+            if (user.organization) document.getElementById('retailerLocation').value = user.organization;
+            loadRetailerData();
         });
     </script>
 </body>

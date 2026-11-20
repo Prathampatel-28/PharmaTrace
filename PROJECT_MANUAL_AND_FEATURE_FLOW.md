@@ -1,36 +1,45 @@
-# PharmaTrace — Complete Project Manual & Feature Interaction Guide
+# 📘 PharmaTrace — Complete Project Manual & Feature Interaction Guide
 
 ---
 
-## 1. What We Have Used in Everything (Tech Stack & Libraries)
+## 1. Complete Technology Stack & Architecture
 
 ### Frontend (Client-Side)
-* **HTML5**: Semantic web structure for all portals (`index.html`, `manufacturer.html`, `retailer.html`, `customer.html`, `ledger.html`).
-* **CSS3 (`style.css`)**: Custom styling system featuring:
-  * Responsive layout (flexbox and grid)
-  * Dark navigation bar (`#0f172a`) and clean card containers
-  * Color-coded status badges:
-    * **Manufactured**: Factory yellow (`#fef3c7`)
-    * **Received**: Distributor blue (`#e0e7ff`)
-    * **In Stock / Sold**: Pharmacy green (`#dcfce7`)
-    * **Recalled**: Alert red (`#fee2e2`)
+* **HTML5**: Semantic, accessible markup across 7 interactive portals:
+  * `index.html`: Public landing page, platform metrics, and system navigation.
+  * `login.html`: Unified authentication, multi-role registration, and password recovery.
+  * `admin.html`: Executive administration, user governance, recall management, and audit logs.
+  * `manufacturer.html`: Batch registration, QR code generation, and packaging label printer.
+  * `retailer.html`: Camera QR scanner, inventory intake, and status transitions.
+  * `customer.html`: Public verification portal, authenticity certificates, and timeline journey.
+  * `ledger.html`: Public supply chain ledger with live search and status filters.
+* **CSS3 (`style.css`)**:
+  * Enterprise SaaS color palette (Pharma Navy `#0f172a`, Medical Blue `#2563eb`, Emerald Green `#10b981`, Amber Warning `#f59e0b`, Crimson Danger `#ef4444`).
+  * CSS Grid and Flexbox responsive layouts.
+  * Print stylesheet (`@media print`) rendering high-resolution medicine packaging labels.
+  * Modal dialog overlays and animated status badges.
 * **JavaScript (ES6+)**:
-  * **Fetch API**: For asynchronous HTTP communication (`GET`, `POST`, `PUT`) with the backend without refreshing the page.
-  * **DOM Manipulation**: Dynamic rendering of cards, select options, and alert boxes.
-  * **URLSearchParams API**: Reads `?id=...` query parameters when customer scans a QR code.
+  * **Fetch API**: Asynchronous HTTP communication with `credentials: 'include'` for secure cookie exchange.
+  * **HTML5-QRCode (`html5-qrcode`)**: Direct mobile smartphone camera and desktop webcam QR code scanning.
+  * **Chart.js (`chart.js`)**: Interactive data visualization of batch volume and supply chain distribution.
+  * **FontAwesome 6**: Intuitive icon sets for pharmaceutical and logistical actions.
 
 ### Backend (Server-Side)
-* **Node.js**: Asynchronous JavaScript runtime environment.
-* **Express.js (`express`)**: Minimalist web framework that handles HTTP routing, JSON body parsing, and serves static frontend files.
-* **QRCode (`qrcode`)**: Generates base64 2D QR code Data URLs from verification links.
-* **Mongoose (`mongoose`)**: MongoDB object modeling tool for schema validation and database interaction.
-* **Dotenv (`dotenv`)**: Loads environment variables from `.env` file (port, base URL, database connection string).
-* **Nodemon (`nodemon`)**: Development tool that automatically restarts the server on code changes.
+* **Node.js**: Asynchronous event-driven runtime environment.
+* **Express.js (`express`)**: RESTful API framework handling routing and static asset delivery.
+* **JWT (`jsonwebtoken`)**: Signed, stateless authentication tokens stored in secure `httpOnly` cookies.
+* **Bcrypt (`bcryptjs`)**: Salted cryptographic password hashing (10 salt rounds).
+* **Cookie-Parser (`cookie-parser`)**: Parses encrypted HTTP-only session cookies.
+* **Helmet (`helmet`)**: Sets HTTP response headers protecting against XSS, clickjacking, and MIME sniffing.
+* **CORS (`cors`)**: Origin validation with credential support.
+* **Express Rate Limit (`express-rate-limit`)**: Prevents brute-force authentication attacks and QR token enumeration.
+* **QRCode (`qrcode`)**: Generates high-resolution PNG Data URLs for pharmaceutical packaging labels.
+* **Crypto (Native Node.js)**: Generates 256-bit cryptographically secure random verification tokens (`crypto.randomBytes(32)`).
 
-### Database & Storage
-* **Dual-Persistence Layer**:
-  1. **MongoDB**: Used automatically when MongoDB Community Server or MongoDB Atlas is available.
-  2. **Local JSON Storage (`backend/data/medicines.json`)**: Automatic zero-setup fallback when MongoDB is offline. Ensures the website always works on any machine without errors.
+### Database & Persistence
+* **MongoDB & Mongoose (`mongoose`)**: Strictly typed database schemas, indexes, and aggregation pipelines.
+* **MongoDB Compass Integration**: Listens on standard port `27017` (`mongodb://127.0.0.1:27017/pharmatrace`).
+* **In-Memory Engine Fallback (`mongodb-memory-server`)**: Ensures zero-setup instant execution with full MongoDB features even if native MongoDB Community Service is not pre-installed on the host.
 
 ---
 
@@ -40,143 +49,158 @@
 PharmaTrace_Updated/
 ├── backend/
 │   ├── config/
-│   │   └── db.js               # Database connection manager with fallback
-│   ├── data/
-│   │   └── medicines.json      # Local JSON file storage (fallback database)
+│   │   └── db.js                 # Database connection & Compass port 27017 binding
+│   ├── controllers/
+│   │   ├── adminController.js    # System metrics, user governance, audit stream
+│   │   ├── authController.js     # JWT auth, registration, password lifecycle
+│   │   ├── medicineController.js # Batch creation, crypto tokens, recalls
+│   │   ├── notificationController.js # User alerts and notifications
+│   │   ├── qrController.js       # Public QR verification & scan logging
+│   │   └── retailerController.js # Stock status transitions & validation
+│   ├── middleware/
+│   │   ├── auth.js               # JWT verification (cookie & header) + optionalAuth
+│   │   ├── rateLimiter.js        # Auth, scan, and general API rate limiting
+│   │   └── rbac.js               # Role-based access control guards
 │   ├── models/
-│   │   └── Medicine.js         # Unified Medicine data model & CRUD methods
+│   │   ├── AuditLog.js           # Immutable regulatory audit trail
+│   │   ├── Medicine.js           # Pharmaceutical batch dossier schema
+│   │   ├── Notification.js       # System notifications schema
+│   │   ├── PasswordResetToken.js # Expiring password reset tokens
+│   │   ├── QRVerification.js     # Scan analytics & client telemetry
+│   │   ├── TrackingHistory.js    # Detailed custody movement ledger
+│   │   └── User.js               # User accounts with roles & status flags
 │   ├── routes/
-│   │   └── medicineRoutes.js   # 6 REST API endpoints for all operations
-│   ├── .env                    # Configuration file (PORT, URLs, DB URI)
-│   ├── .env.example            # Sample configuration template
-│   ├── package.json            # Backend dependencies and start scripts
-│   └── server.js               # Express server entry point
+│   │   ├── adminRoutes.js        # Protected administrative routes
+│   │   ├── authRoutes.js         # Authentication & profile routes
+│   │   ├── medicineRoutes.js     # Batch registration & query routes
+│   │   ├── notificationRoutes.js # User notification routes
+│   │   ├── qrRoutes.js           # Public QR token resolution routes
+│   │   └── retailerRoutes.js     # Retailer inventory & transition routes
+│   ├── scripts/
+│   │   └── testSuite.js          # 14-point automated end-to-end integration test
+│   ├── utils/
+│   │   └── autoSeeder.js         # Automated database provisioning on boot
+│   ├── .env                      # Environment configuration
+│   ├── .env.example              # Configuration template
+│   ├── package.json              # Backend dependencies
+│   └── server.js                 # Server entry point & security middleware
 ├── frontend/
-│   ├── customer.html           # Customer verification portal
-│   ├── distributor.html        # Redirects to retailer portal
-│   ├── index.html              # Home dashboard
-│   ├── ledger.html             # Public ledger showing all batches
-│   ├── manufacturer.html       # Manufacturer batch registration & QR generator
-│   ├── pharmacy.html           # Redirects to retailer portal
-│   ├── retailer.html           # Retailer status update portal
-│   ├── script.js               # Shared utility functions (api, badges, stats)
-│   └── style.css               # Shared application styles and layout
-├── package.json                # Root package configuration
-├── PROJECT_MANUAL_AND_FEATURE_FLOW.md # This guide
-├── README.md                   # Project overview
-└── TEACHER_EXPLANATION_GUIDE.md# Viva preparation guide
+│   ├── admin.html                # Admin governance dashboard
+│   ├── customer.html             # Public customer verification portal
+│   ├── index.html                # Main landing page
+│   ├── ledger.html               # Public ledger
+│   ├── login.html                # Multi-role authentication & registration
+│   ├── manufacturer.html         # Manufacturer batch management & QR generator
+│   ├── retailer.html             # Retailer inventory & camera scanner
+│   ├── script.js                 # Core frontend controller & API client
+│   └── style.css                 # Enterprise design system
+├── README.md                     # Platform overview & setup instructions
+├── PROJECT_MANUAL_AND_FEATURE_FLOW.md # This comprehensive manual
+└── TEACHER_EXPLANATION_GUIDE.md  # Viva & evaluation preparation guide
 ```
 
 ---
 
-## 3. What Happens When You Click / Press Everything (Page by Page)
+## 3. Page-by-Page Feature Interaction Guide
 
-### 🏠 Page 1: Home Dashboard (`index.html`)
+### 🏠 1. Landing Page (`index.html`)
 
-| Element / Action | What You Press | What Happens Behind the Scenes | What You See on Screen |
+| UI Element | User Action | Behind the Scenes | Visual Output |
 | :--- | :--- | :--- | :--- |
-| **Page Load** | Open `http://localhost:5000` | Browser calls `GET /api/medicines`. Calculates total batches and sums up all checkpoints. | Total batches number and tracking updates count update automatically. |
-| **Top Navigation** | Click `Manufacturer`, `Retailer`, `Customer`, or `Ledger` | Browser navigates directly to that HTML page. | Switched to the selected portal immediately. |
-| **Manufacturer Card** | Click `Open Manufacturer →` | Navigates to `manufacturer.html`. | Opens Manufacturer registration form. |
-| **Retailer Card** | Click `Open Retailer →` | Navigates to `retailer.html`. | Opens Retailer status update form. |
-| **Customer Card** | Click `Verify Medicine →` | Navigates to `customer.html`. | Opens Customer search and verification page. |
-| **Ledger Card** | Click `Open Ledger →` | Navigates to `ledger.html`. | Opens Public ledger list of all batches. |
+| **Page Load** | Navigate to `http://localhost:5000` | Browser sends `GET /api/medicines` and `GET /api/auth/me`. Updates KPI badges and renders user role badge in navbar. | Hero section with dynamic statistics (Active Batches, Checkpoints, Verified Count). |
+| **Quick Search Bar** | Enter batch number and click "Verify Batch" | Redirects to `customer.html?search=<batchNumber>`. | Opens Customer verification page with search results. |
+| **Portal Cards** | Click Manufacturer, Retailer, Customer, or Admin card | Validates session. If not logged in, redirects to `login.html`. If logged in with wrong role, displays access notice. | Navigates directly to the authorized dashboard. |
+| **Navbar Login/Profile** | Click "Sign In" or user avatar | If signed in, opens profile dropdown with role badge, profile link, and logout button. | Profile menu or redirects to `login.html`. |
 
 ---
 
-### 🏭 Page 2: Manufacturer Portal (`manufacturer.html`)
+### 🔑 2. Authentication Portal (`login.html`)
 
-| Element / Action | What You Press | What Happens Behind the Scenes | What You See on Screen |
+| UI Element | User Action | Behind the Scenes | Visual Output |
 | :--- | :--- | :--- | :--- |
-| **View Ledger button** | Click `View Ledger` (top right) | Navigates to `ledger.html`. | Shows all existing batches in ledger. |
-| **Fill Form** | Enter Medicine Name, Batch Number, Mfg Date, Exp Date | Inputs are stored in form fields. | Text appears in input boxes. |
-| **Submit Form** | Click **`Register Batch & Generate QR`** | 1. `event.preventDefault()` stops page reload.<br>2. Validates inputs (checks non-empty, checks expiry > mfg date).<br>3. Calls `POST /api/medicines` with JSON payload.<br>4. Server saves batch with status `'Manufactured'` and initial checkpoint.<br>5. Calls `GET /api/medicines/:id/qr`. Server generates QR code data URL.<br>6. Form resets automatically. | • Green success banner: *"Batch registered successfully! QR code is ready below."*<br>• QR code card appears with scannable QR image.<br>• Medicine batch number is displayed. |
-| **Open Verification Link** | Click `Open Customer Verification Page ↗` | Opens `customer.html?id=<batch_id>` in a new browser tab. | Automatically verifies and displays the new medicine's details. |
-| **Download QR Button** | Click `Download QR Code` | Downloads the generated QR image file (`medicine-qr.png`). | File downloads to your computer. |
-| **Duplicate Batch Error** | Enter a batch number that already exists and click Submit | Server checks uniqueness in database and returns HTTP 409 Conflict. | Red alert box appears: *"This batch number already exists. Please use a unique batch number."* |
+| **Tab Switcher** | Click "Sign In" or "Register" | Toggles active CSS tab class without reloading. | Switches between Login and Registration views. |
+| **Role Selector (Register)** | Select Manufacturer, Retailer, or Customer | Dynamically shows/hides role-specific fields (e.g., Organization, License Number). | Form updates with appropriate registration fields. |
+| **Sign In Form** | Enter credentials & click "Sign In" | Sends `POST /api/auth/login`. Server checks bcrypt hash, validates account status (`active`), and issues signed JWT in HTTP-only cookie. | Green banner; redirects user directly to their role dashboard (`admin.html`, `manufacturer.html`, etc.). |
+| **Suspended Account Login** | Enter credentials of a suspended user | Server returns HTTP 403: `"Account suspended. Contact administrator."` | Red error alert on screen; access denied. |
+| **Forgot Password Link** | Click "Forgot Password?" | Opens modal prompting for account email. | Sends `POST /api/auth/forgot-password` and returns a secure reset link. |
 
 ---
 
-### 🏪 Page 3: Retailer Portal (`retailer.html`)
+### 👑 3. Admin Governance Panel (`admin.html`)
 
-| Element / Action | What You Press | What Happens Behind the Scenes | What You See on Screen |
+*Restricted to users with role `admin`.*
+
+| UI Element | User Action | Behind the Scenes | Visual Output |
 | :--- | :--- | :--- | :--- |
-| **Page Load** | Open `retailer.html` | Calls `GET /api/medicines`. Reads all batches from database. | Dropdown list is populated with all registered batches and their current status. |
-| **Select Batch** | Click dropdown and choose a batch | Sets the selected batch `_id` as the form's target. | Shows chosen batch number, medicine name, and status. |
-| **Select Status** | Choose `Received`, `In Stock`, `Sold`, or `Recalled` | Updates the selected status value in the form. | Selected status appears in dropdown. |
-| **Enter Location & Note** | Type Pharmacy name (e.g. *Care Pharmacy, Delhi*) and note | Saves values in input fields. | Text is ready for submission. |
-| **Submit Update** | Click **`Update Medicine Status`** | 1. Calls `PUT /api/medicines/:id/status` with updated status, location, and note.<br>2. Server updates `currentStatus` and pushes a new object into `checkpoints` array.<br>3. Form resets.<br>4. Calls `loadRetailerBatches()` to refresh the dropdown. | • Green success banner: *"Medicine status updated successfully!"*<br>• Dropdown refreshes showing the batch's newly updated status. |
+| **9 KPI Metric Cards** | Automatic on page load | Calls `GET /api/admin/metrics`. Aggregates counts across Users, Batches, Verifications, Recalls, and Suspensions. | Live counters for all key platform indicators. |
+| **Analytics Charts** | Automatic on page load | Calls `GET /api/admin/analytics`. Uses MongoDB `$group` aggregation pipeline; renders Chart.js bar and doughnut charts. | Interactive charts for batch volume and supply-chain statuses. |
+| **User Search & Filter** | Type in search box or select role filter | Client-side filters user array by name, email, or role in real time. | Table updates immediately with matching users. |
+| **Suspend / Reactivate User** | Click "Suspend" or "Reactivate" button | Sends `PUT /api/admin/users/:id/status` with confirmation prompt. Logs action in `AuditLog`. | Account status changes to `suspended` or `active`. User is blocked from logging in. |
+| **Change User Role** | Select new role from dropdown | Sends `PUT /api/admin/users/:id/role`. Safeguard prevents removing the last admin. | Role badge updates in table. |
+| **Recall Medicine Batch** | Click "Recall" button on a batch | Opens modal requiring mandatory regulatory reason. Sends `POST /api/medicines/:id/recall`. | Batch status changes to `Recalled` (red). Warning flag set across all customer scans. |
+| **System Audit Logs** | View Audit Logs tab | Calls `GET /api/admin/audit-logs`. Renders immutable record of administrative and security events. | Chronological audit trail showing actor, action, IP, and timestamp. |
 
 ---
 
-### 📱 Page 4: Customer Verification Portal (`customer.html`)
+### 🏭 4. Manufacturer Portal (`manufacturer.html`)
 
-| Element / Action | What You Press | What Happens Behind the Scenes | What You See on Screen |
+*Restricted to users with role `manufacturer`.*
+
+| UI Element | User Action | Behind the Scenes | Visual Output |
 | :--- | :--- | :--- | :--- |
-| **Manual Batch Search** | Type batch number (e.g. `PCM-2026-001`) and click **`Verify Medicine Authenticity`** | 1. Calls `GET /api/medicines/batch/:batchNumber`.<br>2. Server queries database for matching batch.<br>3. Returns medicine details and `checkpoints` array. | • Result card appears.<br>• Shows Medicine Name & Strength.<br>• Shows Batch Number.<br>• Shows color-coded status badge.<br>• Shows Mfg Date & Expiry Date.<br>• Shows full chronological journey cards under *"📍 Tracking Journey"*. |
-| **QR Code Scan / Direct Link** | Scan QR code on phone OR open link `customer.html?id=...` | 1. Reads `?id=...` parameter from URL.<br>2. Calls `GET /api/medicines/:id`.<br>3. Automatically fills batch number into search box and triggers verification. | Details and tracking journey display immediately without having to type anything! |
-| **Batch Not Found** | Type invalid batch number (e.g. `FAKE-999`) and click Verify | Server searches database, finds no match, and returns HTTP 404 Not Found. | Red alert box appears: *"Medicine batch 'FAKE-999' was not found in the system."* |
+| **Batch Registration Form** | Fill name, generic name, batch number, dates, dosage, packaging, quantity, and storage instructions | Validates that expiry date > manufacturing date. Sends `POST /api/medicines`. | Server generates cryptographic token and associates batch with the manufacturer. |
+| **Submit Registration** | Click "Register Batch & Generate QR" | Creates batch, logs `Manufactured` tracking checkpoint, and generates scannable QR code. | Success alert appears; QR modal pops up with high-resolution QR code. |
+| **Download QR Code** | Click "Download PNG" in QR modal | Triggers client download of base64 image data URL. | High-resolution PNG file saved to user's computer. |
+| **Print Packaging Label** | Click "Print Packaging Label" | Formats medicine dossier and QR into standard packaging dimensions and calls `window.print()`. | System print dialog opens ready for physical label printing. |
+| **My Batches Table** | View registered batches | Calls `GET /api/medicines/my-batches`. Shows batch number, status badge, scan counts, and date. | Clean table of all batches owned by this manufacturer. |
 
 ---
 
-### 📜 Page 5: Medicine Public Ledger (`ledger.html`)
+### 🏪 5. Retailer Portal (`retailer.html`)
 
-| Element / Action | What You Press | What Happens Behind the Scenes | What You See on Screen |
+*Restricted to users with role `retailer`.*
+
+| UI Element | User Action | Behind the Scenes | Visual Output |
 | :--- | :--- | :--- | :--- |
-| **Page Load** | Open `ledger.html` | Calls `GET /api/medicines`. Retrieves all batches sorted newest first. | Displays all registered batches in card format. |
-| **Batch Cards** | View cards | For each batch, displays: Name, Batch Number, colored Status Badge, Mfg & Exp dates. | Clean audit list of all medicines in circulation. |
-| **View Customer Details** | Click `View Customer Verification Details →` | Navigates to `customer.html?id=<batch_id>`. | Opens Customer Verification page with that batch verified. |
-| **Register New Batch** | Click `+ Register New Batch` (top right) | Navigates to `manufacturer.html`. | Opens registration form to add another batch. |
+| **Start Camera Scanner** | Click "Start Camera Scanner" | Initializes `Html5QrcodeScanner`. Requests camera permissions. | Live camera viewfinder opens. Pointing at a QR code auto-detects and loads the batch. |
+| **Select Inventory Batch** | Select batch from inventory dropdown | Calls `GET /api/retailer/inventory`. Populates current status and details. | Displays current batch information. |
+| **Update Stock Status** | Select new status (`Received`, `In Stock`, `Sold`), enter location and notes, click "Update Status" | Sends `POST /api/retailer/status-update`. Server validates state transition rules. Appends new checkpoint in `TrackingHistory`. | Success notification; batch status updates in real time. |
+| **Recalled Batch Guard** | Attempt to transition a recalled batch | Backend blocks update with HTTP 400: *"Cannot update status of a recalled medicine batch."* | Red error alert: Update rejected for patient safety. |
+| **Recent Activity Ledger** | View transaction history | Calls `GET /api/retailer/history`. Shows all stock transitions performed by this retailer account. | Detailed audit table with timestamps, actions, and locations. |
 
 ---
 
-## 4. API Reference Summary
+### 📱 6. Customer Verification Portal (`customer.html`)
 
-| Method | Endpoint | Purpose | Request Body | Response |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/health` | Server health check | None | `{ status: "ok" }` |
-| `POST` | `/api/medicines` | Register new batch | `{ medicineName, batchNumber, mfgDate, expDate }` | Created medicine object (HTTP 201) |
-| `GET` | `/api/medicines` | Get all batches | None | Array of all medicine objects (HTTP 200) |
-| `GET` | `/api/medicines/:id` | Get batch by ID | None | Medicine object (HTTP 200) |
-| `GET` | `/api/medicines/batch/:batchNumber` | Get batch by number | None | Medicine object (HTTP 200) |
-| `GET` | `/api/medicines/:id/qr` | Generate QR code | None | `{ qrCode: "data:image/png;base64...", verificationUrl: "..." }` |
-| `PUT` | `/api/medicines/:id/status` | Update batch status | `{ status, location, note }` | Updated medicine object (HTTP 200) |
+*Publicly accessible without login.*
+
+| UI Element | User Action | Behind the Scenes | Visual Output |
+| :--- | :--- | :--- | :--- |
+| **Camera Scan** | Click "Scan QR with Camera" | Opens camera scanner. When QR is detected, extracts verification token from URL. | Automatically resolves verification without manual typing. |
+| **Batch Search** | Enter batch number into search input and click "Verify" | Calls `GET /api/qr/batch/:batchNumber`. | Fetches authenticity report. |
+| **Token Verification** | Scan QR code from external phone camera | Opens `http://localhost:5000/customer.html?token=<cryptoToken>`. Calls `GET /api/qr/verify/:token`. Increments scan count. | Displays Digital Authenticity Certificate. |
+| **Authenticity Certificate** | View verification result | Renders batch number, generic name, manufacturer, composition, dosage, mfg & exp dates. | Green "GENUINE MEDICINE" certificate with seal. |
+| **Recall Alert Banner** | Scan a recalled batch | Detects `isRecalled: true`. Overrides certificate with prominent warning banner. | Bright red "PRODUCT RECALL WARNING" alert displaying official recall reason. |
+| **Journey Timeline** | Scroll to Supply Chain Journey | Renders chronological checkpoints from factory release to retail shelf. | Interactive visual timeline showing location, timestamp, and stage. |
+| **Retailer Quick Actions** | Authenticated retailer scans customer QR | Server detects retailer session via cookie. Renders quick status transition buttons directly on the page. | Retailer can update status in one click without leaving the page. |
 
 ---
 
-## 5. Medicine Data Structure Example
+### 📜 7. Public Ledger (`ledger.html`)
 
-```json
-{
-  "_id": "673aa1010000000000000001",
-  "medicineName": "Paracetamol 650mg",
-  "batchNumber": "PCM-2026-001",
-  "mfgDate": "2026-01-15",
-  "expDate": "2028-01-15",
-  "currentStatus": "In Stock",
-  "checkpoints": [
-    {
-      "stage": "Manufacturer",
-      "status": "Manufactured",
-      "location": "Apex Pharmaceuticals, Mumbai",
-      "description": "Batch registered and packaged",
-      "timestamp": "2026-01-15T10:00:00.000Z"
-    },
-    {
-      "stage": "Retailer",
-      "status": "Received",
-      "location": "City Care Pharmacy, Delhi",
-      "description": "Shipment received in good condition",
-      "timestamp": "2026-01-20T14:30:00.000Z"
-    },
-    {
-      "stage": "Retailer",
-      "status": "In Stock",
-      "location": "City Care Pharmacy, Delhi",
-      "description": "Stock verified and placed on pharmacy shelves",
-      "timestamp": "2026-01-21T09:15:00.000Z"
-    }
-  ],
-  "createdAt": "2026-01-15T10:00:00.000Z"
-}
-```
+| UI Element | User Action | Behind the Scenes | Visual Output |
+| :--- | :--- | :--- | :--- |
+| **Page Load** | Open `ledger.html` | Calls `GET /api/medicines` with search/pagination parameters. | Shows all public batches in circulation. |
+| **Search & Status Filter** | Type medicine name or filter by status (`In Stock`, `Sold`, `Recalled`) | Triggers parameterized query `GET /api/medicines?search=...&status=...`. | Table instantly filters to matching records. |
+| **Verify Deep-Link** | Click "Verify" button on any batch row | Opens `customer.html?token=<token>` in a new tab. | Direct verification of selected batch. |
+
+---
+
+## 4. Security Controls Summary
+
+1. **HTTP-Only Cookie Storage**: Prevents JavaScript access to tokens, completely neutralizing Cross-Site Scripting (XSS) credential extraction.
+2. **Cryptographic Verification Tokens**: QR codes use 256-bit cryptographically random tokens (`crypto.randomBytes(32)`). MongoDB ObjectIds are never exposed publicly.
+3. **Strict State Machine**: Batches can only progress along approved supply chain stages (`Manufactured` ➔ `Received` ➔ `In Stock` ➔ `Sold`).
+4. **Safety Recall Locks**: Recalled batches are instantly locked; retailers cannot mark them as sold or available.
+5. **Rate Limiting**: Authentication endpoints and QR verification are protected against brute-force and scraping attacks.
+6. **Regulatory Audit Logging**: All administrative, user status, and recall actions are permanently stored in an immutable audit collection.

@@ -3,86 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medicine Ledger – PharmaTrace</title>
+    <title>Medicine Public Ledger – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="manufacturer.html">Manufacturer</a></li>
-                <li><a href="retailer.html">Retailer</a></li>
-                <li><a href="customer.html">Customer</a></li>
-                <li><a class="active" href="ledger.html">Ledger</a></li>
-            </ul>
-        </div>
-    </nav>
+    <nav class="navbar"></nav>
 
     <main class="container">
         <header class="page-header">
             <div>
-                <h1>📜 Medicine Public Ledger</h1>
-                <p>Complete audit record of all registered medicine batches and their latest statuses</p>
+                <h1>📜 National Pharmaceutical Public Ledger</h1>
+                <p>Transparent public audit registry of all licensed batches, manufacturers, and current supply-chain stages</p>
             </div>
-            <a class="btn" href="manufacturer.html">+ Register New Batch</a>
+            <div>
+                <a class="btn" href="customer.html">🔍 Verify a Medicine</a>
+            </div>
         </header>
 
         <div class="card">
-            <div id="ledgerList" class="batch-list">Loading registered batches...</div>
+            <div class="filter-bar">
+                <input id="ledgerSearchInput" type="text" placeholder="Search by batch number, medicine name, or manufacturer..." oninput="filterLedger()">
+                <select id="ledgerStatusFilter" onchange="filterLedger()">
+                    <option value="">All Statuses</option>
+                    <option value="Manufactured">Manufactured</option>
+                    <option value="Received">Received</option>
+                    <option value="In Stock">In Stock</option>
+                    <option value="Sold">Sold</option>
+                    <option value="Recalled">Recalled</option>
+                </select>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Batch No.</th>
+                            <th>Medicine & Generic Name</th>
+                            <th>Manufacturer & License</th>
+                            <th>Quantity</th>
+                            <th>Mfg / Exp Date</th>
+                            <th>Status</th>
+                            <th>Verification</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody">
+                        <tr><td colspan="7" style="text-align:center;padding:24px;">Loading public pharmaceutical registry...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
     <footer>
-        <p>© 2026 PharmaTrace • Public Ledger</p>
+        <p>© 2026 PharmaTrace • National Pharmaceutical Public Ledger</p>
     </footer>
 
     <script src="script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async function () {
-            const listContainer = document.getElementById('ledgerList');
+        let allLedgerBatches = [];
 
+        async function loadLedger() {
+            const tbody = document.getElementById('ledgerTableBody');
             try {
-                const batches = await api('/api/medicines');
-
-                if (!batches || batches.length === 0) {
-                    listContainer.textContent = 'No medicine batches registered yet. Go to Manufacturer to register the first one!';
-                    return;
-                }
-
-                listContainer.innerHTML = '';
-
-                batches.forEach(function (batch) {
-                    const card = document.createElement('div');
-                    card.className = 'batch-card';
-
-                    const name = document.createElement('div');
-                    name.className = 'batch-name';
-                    name.textContent = batch.medicineName;
-
-                    const batchNum = document.createElement('p');
-                    batchNum.innerHTML = `<strong>Batch:</strong> ${batch.batchNumber}`;
-
-                    const status = document.createElement('p');
-                    status.innerHTML = `<strong>Status:</strong> <span class="${getStatusBadgeClass(batch.currentStatus)}">${batch.currentStatus}</span>`;
-
-                    const dates = document.createElement('p');
-                    dates.style.color = '#64748b';
-                    dates.textContent = `Mfg: ${batch.mfgDate} | Exp: ${batch.expDate}`;
-
-                    const viewLink = document.createElement('a');
-                    viewLink.href = 'customer.html?id=' + batch._id;
-                    viewLink.textContent = 'View Customer Verification Details →';
-                    viewLink.style.display = 'inline-block';
-                    viewLink.style.marginTop = '8px';
-
-                    card.append(name, batchNum, status, dates, viewLink);
-                    listContainer.appendChild(card);
-                });
-            } catch (error) {
-                listContainer.textContent = 'Error loading ledger: ' + error.message;
+                const res = await api('/api/medicines');
+                allLedgerBatches = res.medicines || [];
+                renderLedgerTable(allLedgerBatches);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444;text-align:center;">Failed to load registry: ${err.message}</td></tr>`;
             }
+        }
+
+        function renderLedgerTable(batches) {
+            const tbody = document.getElementById('ledgerTableBody');
+            if (batches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;">No matching medicine batches found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = batches.map(b => `
+                <tr>
+                    <td><b>${b.batchNumber}</b></td>
+                    <td>${b.medicineName}<br><span style="color:#64748b;font-size:0.8rem;">${b.genericName || ''}</span></td>
+                    <td>${b.manufacturerName}<br><span style="color:#94a3b8;font-size:0.75rem;">${b.licenseNumber || ''}</span></td>
+                    <td>${b.quantity || 1000} units</td>
+                    <td>Mfg: ${b.manufacturingDate || b.mfgDate}<br>Exp: ${b.expiryDate || b.expDate}</td>
+                    <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                    <td>
+                        <a href="customer.html?token=${b.verificationToken}" class="btn-sm btn-secondary">Verify Authenticity →</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterLedger() {
+            const q = document.getElementById('ledgerSearchInput').value.toLowerCase();
+            const status = document.getElementById('ledgerStatusFilter').value;
+            const filtered = allLedgerBatches.filter(b => {
+                const matchesQ = !q || b.batchNumber.toLowerCase().includes(q) || b.medicineName.toLowerCase().includes(q) || (b.manufacturerName && b.manufacturerName.toLowerCase().includes(q));
+                const matchesStatus = !status || b.currentStatus === status;
+                return matchesQ && matchesStatus;
+            });
+            renderLedgerTable(filtered);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNavbar('ledger');
+            loadLedger();
         });
     </script>
 </body>

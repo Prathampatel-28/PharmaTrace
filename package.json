@@ -1,8 +1,9 @@
 {
   "name": "pharmatrace",
-  "version": "1.0.0",
-  "description": "PharmaTrace - Medicine Supply Chain Traceability",
+  "version": "2.0.0",
+  "description": "PharmaTrace - Advanced Pharmaceutical Supply Chain & Medicine Authentication System",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "seed": "node backend/scripts/seedAdmin.js"
   }
 }

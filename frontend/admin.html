@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regulatory Admin Panel – PharmaTrace</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for real MongoDB analytics charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <nav class="navbar"></nav>
+
+    <main class="container">
+        <header class="page-header">
+            <div>
+                <h1>👑 Regulatory Administration Panel</h1>
+                <p>System-wide governance, user access control, pharmaceutical oversight, and compliance audit trail</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary btn-sm" onclick="loadAllAdminData()">🔄 Refresh Data</button>
+            </div>
+        </header>
+
+        <!-- Tab Bar Navigation -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchAdminTab('overview')">📊 Overview & Analytics</button>
+            <button class="tab-btn" onclick="switchAdminTab('users')">👥 User Management</button>
+            <button class="tab-btn" onclick="switchAdminTab('medicines')">💊 Medicine Registry</button>
+            <button class="tab-btn" onclick="switchAdminTab('audit')">📜 System Audit Logs</button>
+        </div>
+
+        <div id="adminAlert" class="alert"></div>
+
+        <!-- 1. TAB: OVERVIEW & ANALYTICS -->
+        <div id="tabOverview">
+            <!-- 9 System Metrics Cards -->
+            <div class="stats-grid">
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-blue">👥</div>
+                    <div class="metric-info"><b>Total Users</b><h2 id="statUsers">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-amber">🏭</div>
+                    <div class="metric-info"><b>Manufacturers</b><h2 id="statMfg">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-purple">🏪</div>
+                    <div class="metric-info"><b>Retailers</b><h2 id="statRet">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-green">📱</div>
+                    <div class="metric-info"><b>Customers</b><h2 id="statCust">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-blue">📦</div>
+                    <div class="metric-info"><b>Registered Batches</b><h2 id="statBatches">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-green">🔍</div>
+                    <div class="metric-info"><b>QR Verifications</b><h2 id="statVerified">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-purple">🏷️</div>
+                    <div class="metric-info"><b>Sold Units</b><h2 id="statSold">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-red">⚠️</div>
+                    <div class="metric-info"><b>Recalled Batches</b><h2 id="statRecalled">0</h2></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon-box icon-red">🚫</div>
+                    <div class="metric-info"><b>Suspended Accounts</b><h2 id="statSuspended">0</h2></div>
+                </div>
+            </div>
+
+            <!-- Charts Section (Driven by MongoDB API) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-top: 24px;">
+                <div class="card">
+                    <div class="card-title">Medicine Status Distribution</div>
+                    <div class="card-subtitle">Real-time status breakdown across supply chain</div>
+                    <div style="height: 260px; position: relative;">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Top Manufacturers by Batches</div>
+                    <div class="card-subtitle">Distribution of batches produced by licensed plants</div>
+                    <div style="height: 260px; position: relative;">
+                        <canvas id="mfgChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. TAB: USER MANAGEMENT -->
+        <div id="tabUsers" style="display: none;">
+            <div class="card">
+                <div class="card-title">Registered System Users</div>
+                <div class="card-subtitle">Manage user roles, verify compliance credentials, and control access permissions.</div>
+
+                <div class="filter-bar">
+                    <input id="userSearchInput" type="text" placeholder="Search by name, email, or organization..." oninput="filterUsers()">
+                    <select id="userRoleFilter" onchange="filterUsers()">
+                        <option value="">All Roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="manufacturer">Manufacturer</option>
+                        <option value="retailer">Retailer</option>
+                        <option value="customer">Customer</option>
+                    </select>
+                    <select id="userStatusFilter" onchange="filterUsers()">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name / Email</th>
+                                <th>Role</th>
+                                <th>Organization / License</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:24px;">Loading users from database...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. TAB: MEDICINE REGISTRY -->
+        <div id="tabMedicines" style="display: none;">
+            <div class="card">
+                <div class="card-title">Medicine Supply Chain Registry</div>
+                <div class="card-subtitle">Audit batches, inspect cryptographic verification tokens, and issue recall notices.</div>
+
+                <div class="filter-bar">
+                    <input id="medSearchInput" type="text" placeholder="Search by medicine name, generic name, batch number..." oninput="filterMedicines()">
+                    <select id="medStatusFilter" onchange="filterMedicines()">
+                        <option value="">All Statuses</option>
+                        <option value="Manufactured">Manufactured</option>
+                        <option value="Received">Received</option>
+                        <option value="In Stock">In Stock</option>
+                        <option value="Sold">Sold</option>
+                        <option value="Recalled">Recalled</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Batch No.</th>
+                                <th>Medicine & Generic Name</th>
+                                <th>Manufacturer</th>
+                                <th>Mfg / Exp Date</th>
+                                <th>Current Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="medicineTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:24px;">Loading medicine records...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. TAB: AUDIT LOGS -->
+        <div id="tabAudit" style="display: none;">
+            <div class="card">
+                <div class="card-title">Compliance Audit Logs</div>
+                <div class="card-subtitle">Immutable chronological log of all administrative and status-change activities.</div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Actor</th>
+                                <th>Role</th>
+                                <th>Action Taken</th>
+                                <th>Target Type / ID</th>
+                                <th>Client IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:24px;">Loading audit logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Recall Modal -->
+    <div id="recallModal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Issue Pharmaceutical Recall Notice</h3>
+                <button class="modal-close" onclick="closeModal('recallModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger" style="display:block;margin-bottom:16px;">
+                    ⚠️ Warning: Issuing a recall flags this batch across the national system and blocks retailers from selling it.
+                </div>
+                <form id="recallForm">
+                    <input type="hidden" id="recallMedId">
+                    <div class="form-group">
+                        <label>Medicine Batch</label>
+                        <input id="recallBatchDisplay" type="text" disabled style="background:#f1f5f9;font-weight:700;">
+                    </div>
+                    <div class="form-group">
+                        <label>Specific Reason for Recall (Mandatory)</label>
+                        <textarea id="recallReason" rows="3" placeholder="e.g. Quality audit defect: Dissolution rate non-conformance" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger btn-block">Confirm & Issue Formal Recall</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Edit User Details</h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input id="editUserName" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="editUserRole" required>
+                            <option value="admin">Admin</option>
+                            <option value="manufacturer">Manufacturer</option>
+                            <option value="retailer">Retailer</option>
+                            <option value="customer">Customer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Organization</label>
+                        <input id="editUserOrg" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input id="editUserPhone" type="text">
+                    </div>
+                    <button type="submit" class="btn btn-block">Save User Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 PharmaTrace • Regulatory Administration Module</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let allUsers = [];
+        let allMedicines = [];
+        let statusChartInst = null;
+        let mfgChartInst = null;
+
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            ['tabOverview', 'tabUsers', 'tabMedicines', 'tabAudit'].forEach(t => {
+                document.getElementById(t).style.display = 'none';
+            });
+
+            if (tab === 'overview') {
+                document.getElementById('tabOverview').style.display = 'block';
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            } else if (tab === 'users') {
+                document.getElementById('tabUsers').style.display = 'block';
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                loadUsers();
+            } else if (tab === 'medicines') {
+                document.getElementById('tabMedicines').style.display = 'block';
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
+                loadMedicines();
+            } else if (tab === 'audit') {
+                document.getElementById('tabAudit').style.display = 'block';
+                document.querySelectorAll('.tab-btn')[3].classList.add('active');
+                loadAuditLogs();
+            }
+        }
+
+        async function loadOverviewStats() {
+            try {
+                const stats = await api('/api/admin/dashboard');
+                document.getElementById('statUsers').textContent = stats.totalUsers;
+                document.getElementById('statMfg').textContent = stats.totalManufacturers;
+                document.getElementById('statRet').textContent = stats.totalRetailers;
+                document.getElementById('statCust').textContent = stats.totalCustomers;
+                document.getElementById('statBatches').textContent = stats.totalBatches;
+                document.getElementById('statVerified').textContent = stats.totalVerified;
+                document.getElementById('statSold').textContent = stats.totalSold;
+                document.getElementById('statRecalled').textContent = stats.totalRecalled;
+                document.getElementById('statSuspended').textContent = stats.suspendedAccounts;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadAnalyticsCharts() {
+            try {
+                const data = await api('/api/admin/analytics');
+
+                // 1. Status Chart
+                const statusLabels = data.statusDistribution.map(s => s._id);
+                const statusCounts = data.statusDistribution.map(s => s.count);
+
+                const ctxStatus = document.getElementById('statusChart').getContext('2d');
+                if (statusChartInst) statusChartInst.destroy();
+                statusChartInst = new Chart(ctxStatus, {
+                    type: 'doughnut',
+                    data: {
+                        labels: statusLabels,
+                        datasets: [{
+                            data: statusCounts,
+                            backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                // 2. Manufacturer Chart
+                const mfgLabels = data.manufacturerDistribution.map(m => m._id || 'Unknown');
+                const mfgCounts = data.manufacturerDistribution.map(m => m.count);
+
+                const ctxMfg = document.getElementById('mfgChart').getContext('2d');
+                if (mfgChartInst) mfgChartInst.destroy();
+                mfgChartInst = new Chart(ctxMfg, {
+                    type: 'bar',
+                    data: {
+                        labels: mfgLabels,
+                        datasets: [{
+                            label: 'Batches Manufactured',
+                            data: mfgCounts,
+                            backgroundColor: '#0284c7'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadUsers() {
+            const tbody = document.getElementById('userTableBody');
+            try {
+                const res = await api('/api/admin/users');
+                allUsers = res.users || [];
+                renderUserTable(allUsers);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;text-align:center;">Failed to load users: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderUserTable(users) {
+            const tbody = document.getElementById('userTableBody');
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">No matching users found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td><b>${u.name}</b><br><span style="color:#64748b;font-size:0.8rem;">${u.email}</span></td>
+                    <td><span class="user-badge role-${u.role}">${u.role}</span></td>
+                    <td>${u.organization || '—'}<br><span style="color:#94a3b8;font-size:0.75rem;">${u.licenseNumber || ''}</span></td>
+                    <td>
+                        <span class="status-badge ${u.accountStatus === 'active' ? 'status-in-stock' : 'status-recalled'}">
+                            ${u.accountStatus}
+                        </span>
+                    </td>
+                    <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn-sm btn-secondary" onclick="openEditUser('${u._id}')">Edit</button>
+                        <button class="btn-sm ${u.accountStatus === 'active' ? 'btn-danger' : 'btn-success'}" onclick="toggleUserStatus('${u._id}', '${u.accountStatus === 'active' ? 'suspended' : 'active'}')">
+                            ${u.accountStatus === 'active' ? 'Suspend' : 'Activate'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers() {
+            const q = document.getElementById('userSearchInput').value.toLowerCase();
+            const role = document.getElementById('userRoleFilter').value;
+            const status = document.getElementById('userStatusFilter').value;
+
+            const filtered = allUsers.filter(u => {
+                const matchesQ = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.organization && u.organization.toLowerCase().includes(q));
+                const matchesRole = !role || u.role === role;
+                const matchesStatus = !status || u.accountStatus === status;
+                return matchesQ && matchesRole && matchesStatus;
+            });
+            renderUserTable(filtered);
+        }
+
+        async function toggleUserStatus(id, newStatus) {
+            if (!confirm(`Are you sure you want to mark this account as ${newStatus}?`)) return;
+            try {
+                await api(`/api/admin/users/${id}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: newStatus })
+                });
+                loadUsers();
+                loadOverviewStats();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function openEditUser(id) {
+            const u = allUsers.find(x => x._id === id);
+            if (!u) return;
+            document.getElementById('editUserId').value = u._id;
+            document.getElementById('editUserName').value = u.name;
+            document.getElementById('editUserRole').value = u.role;
+            document.getElementById('editUserOrg').value = u.organization || '';
+            document.getElementById('editUserPhone').value = u.phone || '';
+            openModal('editUserModal');
+        }
+
+        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editUserId').value;
+            try {
+                await api(`/api/admin/users/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        name: document.getElementById('editUserName').value,
+                        role: document.getElementById('editUserRole').value,
+                        organization: document.getElementById('editUserOrg').value,
+                        phone: document.getElementById('editUserPhone').value
+                    })
+                });
+                closeModal('editUserModal');
+                loadUsers();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        async function loadMedicines() {
+            const tbody = document.getElementById('medicineTableBody');
+            try {
+                const res = await api('/api/medicines');
+                allMedicines = res.medicines || [];
+                renderMedicineTable(allMedicines);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;text-align:center;">Failed to load medicines: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderMedicineTable(meds) {
+            const tbody = document.getElementById('medicineTableBody');
+            if (meds.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">No medicine batches found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = meds.map(m => `
+                <tr>
+                    <td><b>${m.batchNumber}</b></td>
+                    <td>${m.medicineName}<br><span style="color:#64748b;font-size:0.8rem;">${m.genericName || '—'}</span></td>
+                    <td>${m.manufacturerName}</td>
+                    <td>Mfg: ${m.manufacturingDate || m.mfgDate}<br>Exp: ${m.expiryDate || m.expDate}</td>
+                    <td><span class="${getStatusBadgeClass(m.currentStatus)}">${m.currentStatus}</span></td>
+                    <td>
+                        <a href="customer.html?token=${m.verificationToken}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
+                        ${m.currentStatus !== 'Recalled' ? `<button class="btn-sm btn-danger" onclick="openRecallModal('${m._id}', '${m.batchNumber}')">Recall</button>` : '<span style="color:#ef4444;font-size:0.8rem;font-weight:700;">Recalled</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterMedicines() {
+            const q = document.getElementById('medSearchInput').value.toLowerCase();
+            const status = document.getElementById('medStatusFilter').value;
+            const filtered = allMedicines.filter(m => {
+                const matchesQ = !q || m.batchNumber.toLowerCase().includes(q) || m.medicineName.toLowerCase().includes(q) || (m.genericName && m.genericName.toLowerCase().includes(q));
+                const matchesStatus = !status || m.currentStatus === status;
+                return matchesQ && matchesStatus;
+            });
+            renderMedicineTable(filtered);
+        }
+
+        function openRecallModal(id, batch) {
+            document.getElementById('recallMedId').value = id;
+            document.getElementById('recallBatchDisplay').value = batch;
+            document.getElementById('recallReason').value = '';
+            openModal('recallModal');
+        }
+
+        document.getElementById('recallForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('recallMedId').value;
+            const reason = document.getElementById('recallReason').value.trim();
+            try {
+                await api(`/api/medicines/${id}/recall`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reason })
+                });
+                closeModal('recallModal');
+                loadMedicines();
+                loadOverviewStats();
+                loadAnalyticsCharts();
+                alert('Recall notice formally recorded and broadcast across the system.');
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        async function loadAuditLogs() {
+            const tbody = document.getElementById('auditTableBody');
+            try {
+                const res = await api('/api/admin/audit-logs');
+                const logs = res.logs || [];
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">No audit logs recorded yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = logs.map(l => `
+                    <tr>
+                        <td>${new Date(l.timestamp).toLocaleString()}</td>
+                        <td><b>${l.performerName}</b></td>
+                        <td><span class="user-badge role-${l.performerRole}">${l.performerRole}</span></td>
+                        <td><code>${l.action}</code></td>
+                        <td>${l.targetType} ${l.targetId ? `(${l.targetId.slice(-6)})` : ''}</td>
+                        <td>${l.ip || 'Localhost'}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;text-align:center;">Failed to load audit logs: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function loadAllAdminData() {
+            await loadOverviewStats();
+            await loadAnalyticsCharts();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await requireAuth(['admin']);
+            if (!user) return;
+            renderNavbar('admin');
+            loadAllAdminData();
+        });
+    </script>
+</body>
+</html>
