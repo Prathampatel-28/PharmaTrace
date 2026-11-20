@@ -1,21 +1,92 @@
 [
   {
-    "_id": "e1770883d138c76a2e43d1e3",
-    "medicineName": "cancer medicine",
-    "batchNumber": "CAN-09",
-    "mfgDate": "2026-11-20",
-    "expDate": "2028-11-20",
-    "currentStatus": "Manufactured",
+    "_id": "673aa1010000000000000007",
+    "medicineName": "Dolo 650mg (Paracetamol)",
+    "batchNumber": "DL-7",
+    "mfgDate": "2026-11-10",
+    "expDate": "2028-11-10",
+    "currentStatus": "In Stock",
     "checkpoints": [
       {
         "stage": "Manufacturer",
         "status": "Manufactured",
-        "location": "Manufacturing facility",
-        "description": "Batch registered by manufacturer",
-        "timestamp": "2026-11-17T17:53:48.671Z"
+        "location": "Micro Labs Ltd, Bengaluru",
+        "description": "Batch registered and packaged",
+        "timestamp": "2026-11-10T09:30:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Received",
+        "location": "Apollo Pharmacy, Pune",
+        "description": "Shipment received and inspected",
+        "timestamp": "2026-11-14T11:15:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "In Stock",
+        "location": "Apollo Pharmacy, Pune",
+        "description": "Stock placed on dispensary shelves",
+        "timestamp": "2026-11-15T10:00:00.000Z"
       }
     ],
-    "createdAt": "2026-11-17T17:53:48.672Z"
+    "createdAt": "2026-11-10T09:30:00.000Z"
+  },
+  {
+    "_id": "673aa1010000000000000010",
+    "medicineName": "Imatinib 400mg (Targeted Cancer Therapy)",
+    "batchNumber": "CAN-10",
+    "mfgDate": "2026-10-15",
+    "expDate": "2029-10-15",
+    "currentStatus": "Received",
+    "checkpoints": [
+      {
+        "stage": "Manufacturer",
+        "status": "Manufactured",
+        "location": "Novartis Oncology Division, Hyderabad",
+        "description": "Batch produced under strict cleanroom conditions",
+        "timestamp": "2026-10-15T08:00:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Received",
+        "location": "Tata Memorial Hospital Pharmacy, Mumbai",
+        "description": "Cold chain verified (2-8°C) and logged into hospital stock",
+        "timestamp": "2026-10-20T14:45:00.000Z"
+      }
+    ],
+    "createdAt": "2026-10-15T08:00:00.000Z"
+  },
+  {
+    "_id": "673aa1010000000000000009",
+    "medicineName": "Cisplatin 50mg Injection (Oncology)",
+    "batchNumber": "CAN-09",
+    "mfgDate": "2026-09-01",
+    "expDate": "2028-09-01",
+    "currentStatus": "Recalled",
+    "checkpoints": [
+      {
+        "stage": "Manufacturer",
+        "status": "Manufactured",
+        "location": "Cipla Oncology Facility, Goa",
+        "description": "Sterile injectable batch manufactured",
+        "timestamp": "2026-09-01T10:00:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Received",
+        "location": "CarePlus Specialty Pharmacy, Pune",
+        "description": "Stock received at distribution depot",
+        "timestamp": "2026-09-08T15:20:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Recalled",
+        "location": "CarePlus Specialty Pharmacy, Pune",
+        "description": "Safety Recall: Packaging seal defect flagged by regulatory audit",
+        "timestamp": "2026-11-18T08:02:00.000Z"
+      }
+    ],
+    "createdAt": "2026-09-01T10:00:00.000Z"
   },
   {
     "_id": "673aa1010000000000000001",
@@ -66,5 +137,37 @@
       }
     ],
     "createdAt": "2026-02-01T11:00:00.000Z"
+  },
+  {
+    "_id": "673aa1010000000000000018",
+    "medicineName": "Azithromycin 500mg",
+    "batchNumber": "AZM-2026-018",
+    "mfgDate": "2026-03-01",
+    "expDate": "2028-03-01",
+    "currentStatus": "Sold",
+    "checkpoints": [
+      {
+        "stage": "Manufacturer",
+        "status": "Manufactured",
+        "location": "Sun Pharma Industries, Vadodara",
+        "description": "Batch produced and tested",
+        "timestamp": "2026-03-01T09:00:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Received",
+        "location": "MedLife Chemist, Bengaluru",
+        "description": "Received and checked",
+        "timestamp": "2026-03-06T13:30:00.000Z"
+      },
+      {
+        "stage": "Retailer",
+        "status": "Sold",
+        "location": "MedLife Chemist, Bengaluru",
+        "description": "Dispensed against verified prescription",
+        "timestamp": "2026-03-10T16:20:00.000Z"
+      }
+    ],
+    "createdAt": "2026-03-01T09:00:00.000Z"
   }
 ]
