@@ -3,11 +3,18 @@ const API_BASE = '';
 let currentUser = null;
 
 async function api(path, options = {}) {
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+    };
+
+    const token = localStorage.getItem('pharmatrace_token');
+    if (token && !headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(API_BASE + path, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(options.headers || {})
-        },
+        headers,
         credentials: 'include',
         ...options
     });
@@ -52,6 +59,12 @@ async function fetchCurrentUser() {
         localStorage.setItem('pharmatrace_user', JSON.stringify(currentUser));
         return currentUser;
     } catch {
+        const cached = getCachedUser();
+        const token = localStorage.getItem('pharmatrace_token');
+        if (cached && token) {
+            currentUser = cached;
+            return currentUser;
+        }
         currentUser = null;
         localStorage.removeItem('pharmatrace_user');
         return null;
@@ -80,6 +93,7 @@ async function logout() {
     }
     currentUser = null;
     localStorage.removeItem('pharmatrace_user');
+    localStorage.removeItem('pharmatrace_token');
     window.location.href = 'login.html';
 }
 

@@ -5,11 +5,13 @@ const User = require('../models/User');
 const PasswordResetToken = require('../models/PasswordResetToken');
 const Notification = require('../models/Notification');
 const { logAudit } = require('../utils/auditLogger');
+const { isMongoConnected } = require('../config/db');
+const { getFallbackUserByEmail, addFallbackUser } = require('../utils/fallbackUsers');
 
 function generateToken(user) {
     const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
     return jwt.sign(
-        { id: user._id, role: user.role, email: user.email },
+        { id: user._id, role: user.role, email: user.email, name: user.name },
         secret,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -42,44 +44,65 @@ exports.register = async (req, res) => {
         // Prevent self-registering as admin
         const assignedRole = ['manufacturer', 'retailer', 'customer'].includes(role) ? role : 'customer';
 
-        const existing = await User.findOne({ email: normalizedEmail });
-        if (existing) {
-            return res.status(409).json({ message: 'An account with this email address already exists.' });
+        let user = null;
+
+        if (isMongoConnected()) {
+            const existing = await User.findOne({ email: normalizedEmail });
+            if (existing) {
+                return res.status(409).json({ message: 'An account with this email address already exists.' });
+            }
+
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            user = await User.create({
+                name: name.trim(),
+                email: normalizedEmail,
+                passwordHash,
+                role: assignedRole,
+                phone: (phone || '').trim(),
+                organization: (organization || '').trim(),
+                licenseNumber: (licenseNumber || '').trim(),
+                accountStatus: 'active'
+            });
+
+            // Create welcome notification
+            await Notification.create({
+                userId: user._id,
+                role: user.role,
+                title: 'Welcome to PharmaTrace',
+                message: `Your account as a ${user.role} has been created successfully.`,
+                type: 'success'
+            }).catch(() => {});
+
+            // Audit log
+            await logAudit({
+                performedBy: user._id,
+                performerName: user.name,
+                performerRole: user.role,
+                action: 'USER_REGISTERED',
+                targetType: 'User',
+                targetId: user._id,
+                updatedData: { email: user.email, role: user.role, organization: user.organization },
+                req
+            }).catch(() => {});
+        } else {
+            const existing = getFallbackUserByEmail(normalizedEmail);
+            if (existing) {
+                return res.status(409).json({ message: 'An account with this email address already exists.' });
+            }
+            user = {
+                _id: 'mem_' + Date.now(),
+                name: name.trim(),
+                email: normalizedEmail,
+                role: assignedRole,
+                phone: (phone || '').trim(),
+                organization: (organization || '').trim(),
+                licenseNumber: (licenseNumber || '').trim(),
+                accountStatus: 'active',
+                passwordPlain: password
+            };
+            addFallbackUser(user);
         }
-
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        const user = await User.create({
-            name: name.trim(),
-            email: normalizedEmail,
-            passwordHash,
-            role: assignedRole,
-            phone: (phone || '').trim(),
-            organization: (organization || '').trim(),
-            licenseNumber: (licenseNumber || '').trim(),
-            accountStatus: 'active'
-        });
-
-        // Create welcome notification
-        await Notification.create({
-            userId: user._id,
-            role: user.role,
-            title: 'Welcome to PharmaTrace',
-            message: `Your account as a ${user.role} has been created successfully.`,
-            type: 'success'
-        });
-
-        // Audit log
-        await logAudit({
-            performedBy: user._id,
-            performerName: user.name,
-            performerRole: user.role,
-            action: 'USER_REGISTERED',
-            targetType: 'User',
-            targetId: user._id,
-            updatedData: { email: user.email, role: user.role, organization: user.organization },
-            req
-        });
 
         const token = generateToken(user);
         setAuthCookie(res, token);
@@ -87,7 +110,14 @@ exports.register = async (req, res) => {
         res.status(201).json({
             message: 'Registration successful.',
             token,
-            user
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                organization: user.organization,
+                accountStatus: user.accountStatus
+            }
         });
     } catch (error) {
         console.error('Registration error:', error);
@@ -104,45 +134,74 @@ exports.login = async (req, res) => {
         }
 
         const normalizedEmail = email.trim().toLowerCase();
-        const user = await User.findOne({ email: normalizedEmail });
+        let user = null;
 
-        if (!user || user.isDeleted) {
+        if (isMongoConnected()) {
+            try {
+                user = await User.findOne({ email: normalizedEmail });
+            } catch (e) {
+                user = null;
+            }
+        }
+
+        if (user) {
+            if (user.isDeleted) {
+                return res.status(401).json({ message: 'Invalid email or password.' });
+            }
+
+            if (user.accountStatus === 'suspended') {
+                return res.status(403).json({ message: 'Your account has been suspended by an administrator.' });
+            }
+
+            if (user.accountStatus === 'deactivated') {
+                return res.status(403).json({ message: 'This account has been deactivated.' });
+            }
+
+            const isValid = await bcrypt.compare(password, user.passwordHash);
+            if (!isValid) {
+                return res.status(401).json({ message: 'Invalid email or password.' });
+            }
+
+            user.lastLogin = new Date();
+            await user.save().catch(() => {});
+        } else {
+            // Check fallback in-memory users
+            const fallback = getFallbackUserByEmail(normalizedEmail);
+            if (fallback && fallback.passwordPlain === password) {
+                user = { ...fallback };
+            }
+        }
+
+        if (!user) {
             return res.status(401).json({ message: 'Invalid email or password.' });
         }
-
-        if (user.accountStatus === 'suspended') {
-            return res.status(403).json({ message: 'Your account has been suspended by an administrator.' });
-        }
-
-        if (user.accountStatus === 'deactivated') {
-            return res.status(403).json({ message: 'This account has been deactivated.' });
-        }
-
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) {
-            return res.status(401).json({ message: 'Invalid email or password.' });
-        }
-
-        user.lastLogin = new Date();
-        await user.save();
 
         const token = generateToken(user);
         setAuthCookie(res, token);
 
-        await logAudit({
-            performedBy: user._id,
-            performerName: user.name,
-            performerRole: user.role,
-            action: 'USER_LOGGED_IN',
-            targetType: 'User',
-            targetId: user._id,
-            req
-        });
+        if (isMongoConnected()) {
+            await logAudit({
+                performedBy: user._id,
+                performerName: user.name,
+                performerRole: user.role,
+                action: 'USER_LOGGED_IN',
+                targetType: 'User',
+                targetId: user._id,
+                req
+            }).catch(() => {});
+        }
 
         res.json({
             message: 'Login successful.',
             token,
-            user
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                organization: user.organization,
+                accountStatus: user.accountStatus
+            }
         });
     } catch (error) {
         console.error('Login error:', error);

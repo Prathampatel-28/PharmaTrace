@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { isMongoConnected } = require('../config/db');
+const { getFallbackUserById } = require('../utils/fallbackUsers');
 
 async function authenticate(req, res, next) {
     try {
@@ -21,7 +23,30 @@ async function authenticate(req, res, next) {
         const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
         const decoded = jwt.verify(token, secret);
 
-        const user = await User.findById(decoded.id);
+        let user = null;
+
+        if (isMongoConnected()) {
+            try {
+                user = await User.findById(decoded.id);
+            } catch (e) {
+                user = null;
+            }
+        }
+
+        if (!user) {
+            user = getFallbackUserById(decoded.id);
+        }
+
+        if (!user && decoded.email) {
+            user = {
+                _id: decoded.id,
+                name: decoded.name || 'Authenticated User',
+                email: decoded.email,
+                role: decoded.role,
+                accountStatus: 'active'
+            };
+        }
+
         if (!user || user.isDeleted) {
             return res.status(401).json({ message: 'User account not found or has been deleted.' });
         }
@@ -51,7 +76,24 @@ async function optionalAuth(req, _res, next) {
         if (token) {
             const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
             const decoded = jwt.verify(token, secret);
-            const user = await User.findById(decoded.id);
+            let user = null;
+            if (isMongoConnected()) {
+                try {
+                    user = await User.findById(decoded.id);
+                } catch { }
+            }
+            if (!user) {
+                user = getFallbackUserById(decoded.id);
+            }
+            if (!user && decoded.email) {
+                user = {
+                    _id: decoded.id,
+                    name: decoded.name || 'User',
+                    email: decoded.email,
+                    role: decoded.role,
+                    accountStatus: 'active'
+                };
+            }
             if (user && !user.isDeleted && user.accountStatus === 'active') {
                 req.user = user;
             }

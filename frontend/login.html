@@ -236,6 +236,8 @@
                         password: document.getElementById('loginPassword').value
                     })
                 });
+                if (res.token) localStorage.setItem('pharmatrace_token', res.token);
+                if (res.user) localStorage.setItem('pharmatrace_user', JSON.stringify(res.user));
                 showMessage(alertBox, 'Login successful! Redirecting...', 'success');
                 setTimeout(() => redirectByRole(res.user.role), 600);
             } catch (err) {
@@ -260,6 +262,8 @@
                         phone: document.getElementById('mfgPhone').value
                     })
                 });
+                if (res.token) localStorage.setItem('pharmatrace_token', res.token);
+                if (res.user) localStorage.setItem('pharmatrace_user', JSON.stringify(res.user));
                 showMessage(alertBox, 'Manufacturer account registered! Redirecting to portal...', 'success');
                 setTimeout(() => redirectByRole(res.user.role), 800);
             } catch (err) {
@@ -284,6 +288,8 @@
                         phone: document.getElementById('retPhone').value
                     })
                 });
+                if (res.token) localStorage.setItem('pharmatrace_token', res.token);
+                if (res.user) localStorage.setItem('pharmatrace_user', JSON.stringify(res.user));
                 showMessage(alertBox, 'Retailer registered! Redirecting to Retailer Dashboard...', 'success');
                 setTimeout(() => redirectByRole(res.user.role), 800);
             } catch (err) {
@@ -306,6 +312,8 @@
                         role: 'customer'
                     })
                 });
+                if (res.token) localStorage.setItem('pharmatrace_token', res.token);
+                if (res.user) localStorage.setItem('pharmatrace_user', JSON.stringify(res.user));
                 showMessage(alertBox, 'Account created! Redirecting to verification portal...', 'success');
                 setTimeout(() => redirectByRole(res.user.role), 800);
             } catch (err) {
