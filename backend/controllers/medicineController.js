@@ -8,16 +8,7 @@ const QRVerification = require('../models/QRVerification');
 const Notification = require('../models/Notification');
 const { logAudit } = require('../utils/auditLogger');
 const { isMongoConnected } = require('../config/db');
-
-function getFallbackMedicines() {
-    try {
-        const filePath = path.join(__dirname, '..', 'data', 'medicines.json');
-        if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-        }
-    } catch { }
-    return [];
-}
+const { getFallbackMedicines, addFallbackMedicine, findFallbackMedicine } = require('../utils/fallbackMedicines');
 
 exports.createBatch = async (req, res) => {
     try {
@@ -52,9 +43,16 @@ exports.createBatch = async (req, res) => {
 
         const normalizedBatch = batchNumber.trim().toUpperCase();
 
-        const existing = await Medicine.findOne({ batchNumber: normalizedBatch, isDeleted: false });
-        if (existing) {
-            return res.status(409).json({ message: `Batch number "${normalizedBatch}" already exists. Please use a unique batch number.` });
+        if (isMongoConnected()) {
+            const existing = await Medicine.findOne({ batchNumber: normalizedBatch, isDeleted: false });
+            if (existing) {
+                return res.status(409).json({ message: `Batch number "${normalizedBatch}" already exists. Please use a unique batch number.` });
+            }
+        } else {
+            const existing = findFallbackMedicine(normalizedBatch);
+            if (existing) {
+                return res.status(409).json({ message: `Batch number "${normalizedBatch}" already exists. Please use a unique batch number.` });
+            }
         }
 
         const verificationToken = crypto.randomBytes(16).toString('hex');
@@ -69,6 +67,36 @@ exports.createBatch = async (req, res) => {
             updaterName: req.user.name,
             timestamp: new Date()
         };
+
+        if (!isMongoConnected()) {
+            const fallbackBatch = {
+                _id: 'batch_' + Date.now(),
+                medicineName: medicineName.trim(),
+                genericName: (genericName || '').trim(),
+                manufacturerId: req.user._id,
+                manufacturerName: manufacturerOrg,
+                batchNumber: normalizedBatch,
+                manufacturingDate: effectiveMfgDate,
+                expiryDate: effectiveExpDate,
+                mfgDate: effectiveMfgDate,
+                expDate: effectiveExpDate,
+                licenseNumber: (licenseNumber || req.user.licenseNumber || '').trim(),
+                composition: (composition || '').trim(),
+                dosage: (dosage || '').trim(),
+                packaging: (packaging || 'Standard Unit Blister').trim(),
+                quantity: Number(quantity) || 1000,
+                productImage: (productImage || '').trim(),
+                storageInstructions: (storageInstructions || 'Store below 25°C in a dry place').trim(),
+                description: (description || '').trim(),
+                currentStatus: 'Manufactured',
+                isRecalled: false,
+                verificationToken,
+                createdAt: new Date(),
+                checkpoints: [initialCheckpoint]
+            };
+            addFallbackMedicine(fallbackBatch);
+            return res.status(201).json(fallbackBatch);
+        }
 
         const medicine = await Medicine.create({
             medicineName: medicineName.trim(),
@@ -216,8 +244,14 @@ exports.getAllMedicines = async (req, res) => {
 
 exports.getMyBatches = async (req, res) => {
     try {
-        const query = { manufacturerId: req.user._id, isDeleted: false };
-        const batches = await Medicine.find(query).sort({ createdAt: -1 });
+        let batches = [];
+        if (isMongoConnected()) {
+            const query = { manufacturerId: req.user._id, isDeleted: false };
+            batches = await Medicine.find(query).sort({ createdAt: -1 });
+        }
+        if (!batches || batches.length === 0) {
+            batches = getFallbackMedicines();
+        }
         res.json(batches);
     } catch (error) {
         res.json(getFallbackMedicines());
@@ -226,14 +260,20 @@ exports.getMyBatches = async (req, res) => {
 
 exports.getBatchById = async (req, res) => {
     try {
-        const medicine = await Medicine.findOne({ _id: req.params.id, isDeleted: false });
+        const idParam = (req.params.id || '').trim();
+        let medicine = null;
+        if (isMongoConnected()) {
+            medicine = await Medicine.findOne({ _id: idParam, isDeleted: false });
+        }
+        if (!medicine) {
+            medicine = findFallbackMedicine(idParam);
+        }
         if (!medicine) {
             return res.status(404).json({ message: 'Medicine batch not found.' });
         }
         res.json(medicine);
     } catch (error) {
-        const list = getFallbackMedicines();
-        const found = list.find(m => m._id === req.params.id || m.batchNumber === req.params.id);
+        const found = findFallbackMedicine(req.params.id);
         if (found) return res.json(found);
         res.status(404).json({ message: 'Medicine batch not found.' });
     }
@@ -242,14 +282,19 @@ exports.getBatchById = async (req, res) => {
 exports.getBatchByNumber = async (req, res) => {
     try {
         const batchNumber = req.params.batchNumber.trim().toUpperCase();
-        const medicine = await Medicine.findOne({ batchNumber, isDeleted: false });
+        let medicine = null;
+        if (isMongoConnected()) {
+            medicine = await Medicine.findOne({ batchNumber, isDeleted: false });
+        }
+        if (!medicine) {
+            medicine = findFallbackMedicine(batchNumber);
+        }
         if (!medicine) {
             return res.status(404).json({ message: `Medicine batch "${batchNumber}" was not found.` });
         }
         res.json(medicine);
     } catch (error) {
-        const list = getFallbackMedicines();
-        const found = list.find(m => m.batchNumber && m.batchNumber.toUpperCase() === req.params.batchNumber.trim().toUpperCase());
+        const found = findFallbackMedicine(req.params.batchNumber);
         if (found) return res.json(found);
         res.status(404).json({ message: `Medicine batch "${req.params.batchNumber}" was not found.` });
     }
@@ -257,20 +302,35 @@ exports.getBatchByNumber = async (req, res) => {
 
 exports.getQrCode = async (req, res) => {
     try {
-        const medicine = await Medicine.findOne({
-            $or: [
-                { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null },
-                { verificationToken: req.params.id }
-            ],
-            isDeleted: false
-        });
+        const idParam = (req.params.id || '').trim();
+        let medicine = null;
 
-        if (!medicine) {
-            return res.status(404).json({ message: 'Medicine batch not found.' });
+        if (isMongoConnected()) {
+            try {
+                medicine = await Medicine.findOne({
+                    $or: [
+                        { _id: idParam.match(/^[0-9a-fA-F]{24}$/) ? idParam : null },
+                        { verificationToken: idParam },
+                        { batchNumber: idParam.toUpperCase() }
+                    ],
+                    isDeleted: false
+                });
+            } catch (e) {
+                medicine = null;
+            }
         }
 
+        if (!medicine) {
+            medicine = findFallbackMedicine(idParam);
+        }
+
+        if (!medicine) {
+            return res.status(404).json({ message: `Medicine batch "${idParam}" not found.` });
+        }
+
+        const token = medicine.verificationToken || medicine._id || medicine.batchNumber;
         const baseUrl = (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-        const verificationUrl = `${baseUrl}/customer.html?token=${medicine.verificationToken}`;
+        const verificationUrl = `${baseUrl}/customer.html?token=${token}`;
 
         const qrCode = await QRCode.toDataURL(verificationUrl, {
             width: 320,
@@ -283,7 +343,7 @@ exports.getQrCode = async (req, res) => {
             verificationUrl,
             batchNumber: medicine.batchNumber,
             medicineName: medicine.medicineName,
-            token: medicine.verificationToken
+            token
         });
     } catch (error) {
         console.error('QR code generation error:', error);

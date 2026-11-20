@@ -1,36 +1,24 @@
-const path = require('path');
-const fs = require('fs');
 const Medicine = require('../models/Medicine');
 const QRVerification = require('../models/QRVerification');
 const TrackingHistory = require('../models/TrackingHistory');
 const { isMongoConnected } = require('../config/db');
-
-function getFallbackMedicines() {
-    try {
-        const filePath = path.join(__dirname, '..', 'data', 'medicines.json');
-        if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-        }
-    } catch { }
-    return [];
-}
+const { getFallbackMedicines, findFallbackMedicine } = require('../utils/fallbackMedicines');
 
 exports.verifyToken = async (req, res) => {
     try {
         const tokenOrId = req.params.token.trim();
 
         if (!isMongoConnected()) {
-            const list = getFallbackMedicines();
-            const found = list.find(m => m.batchNumber === tokenOrId.toUpperCase() || m._id === tokenOrId);
+            const found = findFallbackMedicine(tokenOrId);
             if (found) {
                 return res.json({
                     isAuthentic: true,
                     medicine: {
                         ...found,
-                        manufacturingDate: found.mfgDate,
-                        expiryDate: found.expDate,
-                        isExpired: new Date(found.expDate) < new Date(),
-                        verificationToken: found._id,
+                        manufacturingDate: found.manufacturingDate || found.mfgDate,
+                        expiryDate: found.expiryDate || found.expDate,
+                        isExpired: new Date(found.expiryDate || found.expDate) < new Date(),
+                        verificationToken: found.verificationToken || found._id,
                         checkpoints: found.checkpoints || []
                     },
                     scanCount: 1,

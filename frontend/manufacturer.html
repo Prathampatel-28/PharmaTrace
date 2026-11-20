@@ -218,19 +218,19 @@
 
         async function viewBatchQr(id) {
             try {
-                const b = myBatches.find(x => x._id === id);
+                const b = myBatches.find(x => x._id === id || x.batchNumber === id);
                 const qr = await api(`/api/medicines/${id}/qr`);
 
-                document.getElementById('modalMedName').textContent = b ? b.medicineName : qr.medicineName;
+                document.getElementById('modalMedName').textContent = b ? b.medicineName : (qr.medicineName || 'Medicine');
                 document.getElementById('modalGeneric').textContent = b?.genericName || '';
-                document.getElementById('modalBatch').textContent = b?.batchNumber || qr.batchNumber;
+                document.getElementById('modalBatch').textContent = b?.batchNumber || qr.batchNumber || '';
                 document.getElementById('modalMfg').textContent = b?.manufacturingDate || b?.mfgDate || '';
                 document.getElementById('modalExp').textContent = b?.expiryDate || b?.expDate || '';
                 document.getElementById('modalStorage').textContent = b?.storageInstructions || '';
 
                 document.getElementById('modalQrImg').src = qr.qrCode;
                 document.getElementById('modalDownloadBtn').href = qr.qrCode;
-                document.getElementById('modalDownloadBtn').download = `qr-${b?.batchNumber || 'medicine'}.png`;
+                document.getElementById('modalDownloadBtn').download = `qr-${b?.batchNumber || qr.batchNumber || 'medicine'}.png`;
                 document.getElementById('modalVerifyLink').href = qr.verificationUrl;
 
                 openModal('qrModal');
