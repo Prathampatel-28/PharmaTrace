@@ -80,8 +80,26 @@ exports.verifyToken = async (req, res) => {
             { upsert: true }
         );
 
-        // Fetch detailed tracking history
-        const trackingHistory = await TrackingHistory.find({ medicineId: medicine._id }).sort({ timestamp: -1 });
+        // Fetch detailed tracking history and sanitize to prevent leaking internal database ObjectIds
+        const rawTrackingHistory = await TrackingHistory.find({ medicineId: medicine._id }).sort({ timestamp: -1 });
+
+        const safeCheckpoints = (medicine.checkpoints || []).map(cp => ({
+            stage: cp.stage || 'Checkpoint',
+            status: cp.status,
+            location: cp.location || '',
+            description: cp.description || '',
+            timestamp: cp.timestamp
+        }));
+
+        const trackingHistory = rawTrackingHistory.map(th => ({
+            stage: th.userRole ? (th.userRole.charAt(0).toUpperCase() + th.userRole.slice(1)) : 'Checkpoint',
+            previousStatus: th.previousStatus,
+            newStatus: th.newStatus,
+            location: th.location || '',
+            remarks: th.remarks || '',
+            timestamp: th.timestamp,
+            userRole: th.userRole
+        }));
 
         const isExpired = new Date(medicine.expiryDate) < new Date();
 
@@ -106,7 +124,7 @@ exports.verifyToken = async (req, res) => {
                 recallReason: medicine.recallReason,
                 isExpired,
                 verificationToken: medicine.verificationToken,
-                checkpoints: medicine.checkpoints || []
+                checkpoints: safeCheckpoints
             },
             trackingHistory,
             retailerActionsAvailable: req.user ? ['retailer', 'admin'].includes(req.user.role) : false,

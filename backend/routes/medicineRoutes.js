@@ -13,8 +13,8 @@ router.get('/my-batches', authenticate, authorize('manufacturer', 'admin'), medi
 
 // 2. Specific batch actions & parameterized routes
 router.post('/', authenticate, authorize('manufacturer', 'admin'), medicineController.createBatch);
-router.get('/:id/qr', optionalAuth, medicineController.getQrCode);
-router.get('/:id', optionalAuth, medicineController.getBatchById);
+router.get('/:id/qr', authenticate, authorize('manufacturer', 'admin'), medicineController.getQrCode);
+router.get('/:id', authenticate, authorize('manufacturer', 'admin', 'retailer'), medicineController.getBatchById);
 router.put('/:id', authenticate, authorize('manufacturer', 'admin'), medicineController.updateBatch);
 router.post('/:id/recall', authenticate, authorize('manufacturer', 'admin'), medicineController.recallBatch);
 

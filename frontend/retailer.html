@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Retailer Portal – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            const token = localStorage.getItem('pharmatrace_token');
+            if (!token && !document.cookie.includes('token=')) {
+                window.location.replace('login.html?redirect=' + encodeURIComponent(window.location.pathname));
+            }
+        })();
+    </script>
     <!-- html5-qrcode for live mobile camera & webcam QR scanning -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>

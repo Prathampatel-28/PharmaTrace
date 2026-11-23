@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manufacturer Portal – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            const token = localStorage.getItem('pharmatrace_token');
+            if (!token && !document.cookie.includes('token=')) {
+                window.location.replace('login.html?redirect=' + encodeURIComponent(window.location.pathname));
+            }
+        })();
+    </script>
     <style>
         .mfg-page-section {
             display: none;
@@ -410,7 +418,23 @@
 
             const target = document.getElementById('section-' + sectionId);
             if (target) target.classList.add('active');
-            if (btn) btn.classList.add('active');
+
+            // Highlight corresponding sidebar link
+            const links = document.querySelectorAll('.sidebar-link');
+            if (btn && btn.classList && btn.classList.contains('sidebar-link')) {
+                btn.classList.add('active');
+            } else {
+                if (sectionId === 'overview' && links[0]) links[0].classList.add('active');
+                else if (sectionId === 'products' && links[1]) links[1].classList.add('active');
+                else if (sectionId === 'register' && links[2]) links[2].classList.add('active');
+                else if (sectionId === 'qrManager' && links[3]) links[3].classList.add('active');
+            }
+
+            // Automatically collapse sidebar on smaller screens after navigation
+            if (window.innerWidth <= 900) {
+                const sb = document.querySelector('.sidebar');
+                if (sb) sb.classList.add('collapsed');
+            }
 
             if (sectionId === 'qrManager') {
                 populateQrSelector();

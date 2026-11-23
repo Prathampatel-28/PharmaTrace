@@ -53,6 +53,55 @@ app.use(async (_req, _res, next) => {
     next();
 });
 
+// Protected Frontend Page Routes - Server-Side Access Control & Cache Prevention
+const { verifyTokenDirect } = require('./middleware/auth');
+
+function requirePageAuth(allowedRoles) {
+    return (req, res, next) => {
+        // Prevent browser caching of sensitive authenticated dashboard pages
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
+        let token = req.cookies?.token;
+        if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (!token) {
+            return res.redirect(`/login.html?redirect=${encodeURIComponent(req.originalUrl)}`);
+        }
+
+        const decoded = verifyTokenDirect(token);
+        if (!decoded) {
+            res.clearCookie('token');
+            return res.redirect(`/login.html?redirect=${encodeURIComponent(req.originalUrl)}`);
+        }
+
+        if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
+            if (decoded.role === 'manufacturer') return res.redirect('/manufacturer.html');
+            if (decoded.role === 'retailer') return res.redirect('/retailer.html');
+            if (decoded.role === 'admin') return res.redirect('/admin.html');
+            return res.redirect('/customer.html');
+        }
+
+        next();
+    };
+}
+
+// Intercept protected HTML dashboard requests before express.static serves them
+app.get(['/manufacturer', '/manufacturer.html'], requirePageAuth(['manufacturer', 'admin']), (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'manufacturer.html'));
+});
+
+app.get(['/retailer', '/retailer.html'], requirePageAuth(['retailer', 'admin']), (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'retailer.html'));
+});
+
+app.get(['/admin', '/admin.html'], requirePageAuth(['admin']), (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'admin.html'));
+});
+
 // Serve Static Frontend Assets
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 

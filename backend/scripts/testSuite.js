@@ -90,9 +90,9 @@ async function runTestSuite() {
         assert(newBatch.status === 201 && newBatch.body.batchNumber === newBatchNumber, `6. Manufacturer Batch Registration (${newBatchNumber})`);
         const createdMed = newBatch.body;
 
-        // Test 7: QR Code Generation
-        const qrRes = await request(`/api/medicines/${createdMed._id}/qr`);
-        assert(qrRes.status === 200 && qrRes.body.qrCode.startsWith('data:image/png;base64,'), '7. Cryptographic QR Code PNG Data URL Generation');
+        // Test 7: QR Code Generation (Requires Manufacturer / Admin Authentication)
+        const qrRes = await request(`/api/medicines/${createdMed._id}/qr`, {}, null, mfgCookie);
+        assert(qrRes.status === 200 && qrRes.body.qrCode && qrRes.body.qrCode.startsWith('data:image/png;base64,'), '7. Cryptographic QR Code PNG Data URL Generation');
 
         // Test 8: Public Customer Verification (Read-Only)
         const verifyRes = await request(`/api/qr/${createdMed.verificationToken}`);

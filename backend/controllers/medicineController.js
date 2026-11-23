@@ -10,6 +10,31 @@ const { logAudit } = require('../utils/auditLogger');
 const { isMongoConnected } = require('../config/db');
 const { getFallbackMedicines, addFallbackMedicine, findFallbackMedicine } = require('../utils/fallbackMedicines');
 
+// Sanitizer for Public Medicine Endpoints (strips internal tokens, internal user IDs, and audit details)
+function sanitizePublicMedicine(m) {
+    if (!m) return null;
+    return {
+        _id: m._id,
+        medicineName: m.medicineName,
+        genericName: m.genericName || '',
+        batchNumber: m.batchNumber,
+        manufacturerName: m.manufacturerName,
+        licenseNumber: m.licenseNumber || '',
+        quantity: m.quantity || 1000,
+        manufacturingDate: m.manufacturingDate || m.mfgDate,
+        expiryDate: m.expiryDate || m.expDate,
+        mfgDate: m.manufacturingDate || m.mfgDate,
+        expDate: m.expiryDate || m.expDate,
+        composition: m.composition || '',
+        dosage: m.dosage || '',
+        packaging: m.packaging || '',
+        currentStatus: m.currentStatus,
+        isRecalled: !!m.isRecalled,
+        recallReason: m.recallReason || '',
+        createdAt: m.createdAt || new Date()
+    };
+}
+
 exports.createBatch = async (req, res) => {
     try {
         const {
@@ -194,7 +219,7 @@ exports.getAllMedicines = async (req, res) => {
                 list = list.filter(m => (m.medicineName && m.medicineName.toLowerCase().includes(s)) || (m.batchNumber && m.batchNumber.toLowerCase().includes(s)));
             }
             return res.json({
-                medicines: list,
+                medicines: list.map(sanitizePublicMedicine),
                 total: list.length,
                 page: 1,
                 pages: 1
@@ -217,6 +242,7 @@ exports.getAllMedicines = async (req, res) => {
 
         const skip = (Number(page) - 1) * Number(limit);
         const medicines = await Medicine.find(query)
+            .select('medicineName genericName batchNumber manufacturerName licenseNumber quantity manufacturingDate expiryDate mfgDate expDate currentStatus isRecalled recallReason createdAt')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit));
@@ -239,7 +265,7 @@ exports.getAllMedicines = async (req, res) => {
             list = list.filter(m => (m.medicineName && m.medicineName.toLowerCase().includes(s)) || (m.batchNumber && m.batchNumber.toLowerCase().includes(s)));
         }
         res.json({
-            medicines: list,
+            medicines: list.map(sanitizePublicMedicine),
             total: list.length,
             page: 1,
             pages: 1
@@ -321,10 +347,10 @@ exports.getBatchByNumber = async (req, res) => {
         if (!medicine) {
             return res.status(404).json({ message: `Medicine batch "${batchNumber}" was not found.` });
         }
-        res.json(medicine);
+        res.json(sanitizePublicMedicine(medicine));
     } catch (error) {
         const found = findFallbackMedicine(req.params.batchNumber);
-        if (found) return res.json(found);
+        if (found) return res.json(sanitizePublicMedicine(found));
         res.status(404).json({ message: `Medicine batch "${req.params.batchNumber}" was not found.` });
     }
 };

@@ -59,14 +59,9 @@ async function fetchCurrentUser() {
         localStorage.setItem('pharmatrace_user', JSON.stringify(currentUser));
         return currentUser;
     } catch {
-        const cached = getCachedUser();
-        const token = localStorage.getItem('pharmatrace_token');
-        if (cached && token) {
-            currentUser = cached;
-            return currentUser;
-        }
         currentUser = null;
         localStorage.removeItem('pharmatrace_user');
+        localStorage.removeItem('pharmatrace_token');
         return null;
     }
 }
@@ -94,7 +89,18 @@ async function logout() {
     currentUser = null;
     localStorage.removeItem('pharmatrace_user');
     localStorage.removeItem('pharmatrace_token');
-    window.location.href = 'login.html';
+    sessionStorage.clear();
+    window.location.replace('login.html');
+}
+
+function toggleMfgSidebar() {
+    const sb = document.querySelector('.sidebar');
+    if (!sb) return;
+    if (window.innerWidth <= 900) {
+        sb.classList.toggle('collapsed');
+    } else {
+        sb.classList.toggle('collapsed-desktop');
+    }
 }
 
 function openModal(id) {
@@ -119,17 +125,18 @@ async function renderNavbar(activePage = '') {
 
     if (activePage === 'manufacturer' || (user && user.role === 'manufacturer' && activePage !== 'customer')) {
         brandHtml = `
-            <a class="nav-brand" href="manufacturer.html">
-                <span>💊 PharmaTrace</span>
-                <span class="user-badge role-manufacturer" style="font-size:0.7rem;margin-left:6px;">Manufacturer Portal</span>
-            </a>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button id="sidebarToggleBtn" class="sidebar-toggle-btn" onclick="toggleMfgSidebar()" title="Toggle Sidebar Navigation" aria-label="Toggle Sidebar Navigation">
+                    ☰
+                </button>
+                <a class="nav-brand" href="manufacturer.html">
+                    <span>💊 PharmaTrace</span>
+                    <span class="user-badge role-manufacturer" style="font-size:0.7rem;margin-left:6px;">Manufacturer Portal</span>
+                </a>
+            </div>
         `;
-        navLinksHtml = `
-            <li><a class="active" href="manufacturer.html">🏭 My Production</a></li>
-            <li><a href="#" onclick="if(window.showMfgSection){window.showMfgSection('products');}return false;">📦 My Products</a></li>
-            <li><a href="#" onclick="if(window.showMfgSection){window.showMfgSection('register');}return false;">➕ Register Batch</a></li>
-            <li><a href="#" onclick="if(window.showMfgSection){window.showMfgSection('qrManager');}return false;">📱 QR Labels</a></li>
-        `;
+        // Top navbar navigation links removed to eliminate duplicate navigation; left sidebar is the primary navigation
+        navLinksHtml = '';
     } else if (activePage === 'retailer' || (user && user.role === 'retailer' && activePage !== 'customer')) {
         brandHtml = `
             <a class="nav-brand" href="retailer.html">

@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Regulatory Admin Panel – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            const token = localStorage.getItem('pharmatrace_token');
+            if (!token && !document.cookie.includes('token=')) {
+                window.location.replace('login.html?redirect=' + encodeURIComponent(window.location.pathname));
+            }
+        })();
+    </script>
     <!-- Chart.js for real MongoDB analytics charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>

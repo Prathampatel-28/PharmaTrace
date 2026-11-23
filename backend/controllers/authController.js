@@ -7,11 +7,18 @@ const Notification = require('../models/Notification');
 const { logAudit } = require('../utils/auditLogger');
 const { isMongoConnected } = require('../config/db');
 const { getFallbackUserByEmail, addFallbackUser } = require('../utils/fallbackUsers');
+const { revokeToken } = require('../middleware/auth');
 
 function generateToken(user) {
     const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
     return jwt.sign(
-        { id: user._id, role: user.role, email: user.email, name: user.name },
+        {
+            id: user._id,
+            role: user.role,
+            email: user.email,
+            name: user.name,
+            jti: crypto.randomBytes(16).toString('hex')
+        },
         secret,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -216,7 +223,21 @@ exports.login = async (req, res) => {
 
 exports.logout = async (req, res) => {
     try {
-        res.clearCookie('token');
+        let token = req.cookies?.token;
+        if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (token) {
+            revokeToken(token);
+        }
+
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+        });
+
         if (req.user) {
             await logAudit({
                 performedBy: req.user._id,
@@ -226,9 +247,9 @@ exports.logout = async (req, res) => {
                 targetType: 'User',
                 targetId: req.user._id,
                 req
-            });
+            }).catch(() => {});
         }
-        res.json({ message: 'Logged out successfully.' });
+        res.json({ message: 'Logged out successfully. Session invalidated.' });
     } catch (error) {
         res.status(500).json({ message: 'Logout failed.' });
     }

@@ -3,6 +3,33 @@ const User = require('../models/User');
 const { isMongoConnected } = require('../config/db');
 const { getFallbackUserById } = require('../utils/fallbackUsers');
 
+// Server-side Revoked Tokens Blacklist (In-memory Set for high-speed checks + memory cleanup)
+const revokedTokens = new Set();
+
+function revokeToken(token) {
+    if (!token) return;
+    revokedTokens.add(token);
+    // Auto-remove after 7 days to prevent unbounded memory growth
+    setTimeout(() => {
+        revokedTokens.delete(token);
+    }, 7 * 24 * 60 * 60 * 1000);
+}
+
+function isTokenRevoked(token) {
+    if (!token) return true;
+    return revokedTokens.has(token);
+}
+
+function verifyTokenDirect(token) {
+    if (!token || isTokenRevoked(token)) return null;
+    try {
+        const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
+        return jwt.verify(token, secret);
+    } catch {
+        return null;
+    }
+}
+
 async function authenticate(req, res, next) {
     try {
         let token = null;
@@ -18,6 +45,10 @@ async function authenticate(req, res, next) {
 
         if (!token) {
             return res.status(401).json({ message: 'Authentication required. Please log in.' });
+        }
+
+        if (isTokenRevoked(token)) {
+            return res.status(401).json({ message: 'Session invalidated. Token has been revoked on logout. Please log in again.' });
         }
 
         const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
@@ -73,7 +104,7 @@ async function authenticate(req, res, next) {
 async function optionalAuth(req, _res, next) {
     try {
         let token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
-        if (token) {
+        if (token && !isTokenRevoked(token)) {
             const secret = process.env.JWT_SECRET || 'pharmatrace_jwt_super_secure_secret_key_2026_academic_prod';
             const decoded = jwt.verify(token, secret);
             let user = null;
@@ -104,4 +135,10 @@ async function optionalAuth(req, _res, next) {
     next();
 }
 
-module.exports = { authenticate, optionalAuth };
+module.exports = {
+    authenticate,
+    optionalAuth,
+    revokeToken,
+    isTokenRevoked,
+    verifyTokenDirect
+};

@@ -88,7 +88,7 @@
                     <td>Mfg: ${b.manufacturingDate || b.mfgDate}<br>Exp: ${b.expiryDate || b.expDate}</td>
                     <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
                     <td>
-                        <a href="customer.html?token=${b.verificationToken}" class="btn-sm btn-secondary">Verify Authenticity →</a>
+                        <a href="customer.html?token=${encodeURIComponent(b.batchNumber)}" class="btn-sm btn-secondary">Verify Authenticity →</a>
                     </td>
                 </tr>
             `).join('');
