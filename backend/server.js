@@ -79,10 +79,7 @@ function requirePageAuth(allowedRoles) {
         }
 
         if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
-            if (decoded.role === 'manufacturer') return res.redirect('/manufacturer.html');
-            if (decoded.role === 'retailer') return res.redirect('/retailer.html');
-            if (decoded.role === 'admin') return res.redirect('/admin.html');
-            return res.redirect('/customer.html');
+            return res.redirect(`/login.html?redirect=${encodeURIComponent(req.originalUrl)}&roleMismatch=${encodeURIComponent(allowedRoles.join(','))}`);
         }
 
         next();

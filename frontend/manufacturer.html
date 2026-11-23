@@ -67,6 +67,11 @@
                         <span>📱</span> <span>QR Label Manager</span>
                     </button>
                 </li>
+                <li>
+                    <button class="sidebar-link" onclick="showMfgSection('recalls', this)">
+                        <span>⚠️</span> <span>Recall Management (<span id="sidebarRecallCount">0</span>)</span>
+                    </button>
+                </li>
             </ul>
 
             <div class="sidebar-footer">
@@ -353,6 +358,79 @@
                     </div>
                 </div>
             </section>
+
+            <!-- SECTION E: RECALL MANAGEMENT -->
+            <section id="section-recalls" class="mfg-page-section">
+                <header class="page-header" style="margin-top: 0;">
+                    <div>
+                        <h1>⚠️ Product Recall Management Center</h1>
+                        <p>Initiate emergency safety recalls, quarantine affected batches, and maintain regulatory recall compliance records.</p>
+                    </div>
+                </header>
+
+                <!-- Recall Summary Metrics -->
+                <div class="stats-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-blue">📦</div>
+                        <div class="metric-info">
+                            <b>Total Batches Registered</b>
+                            <h2 id="recallTotalBatches">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-green">🛡️</div>
+                        <div class="metric-info">
+                            <b>Active In-Market Batches</b>
+                            <h2 id="recallActiveBatches">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-red">⚠️</div>
+                        <div class="metric-info">
+                            <b>Total Recalled Batches</b>
+                            <h2 id="recallRecalledBatches">0</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recall Batches Table & Toolbar -->
+                <div class="card" style="margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <div class="card-title">Production Batches & Safety Recall Status</div>
+                            <div class="card-subtitle">Authorize safety recalls for defective batches or view existing quarantine records.</div>
+                        </div>
+                    </div>
+
+                    <div class="filter-toolbar">
+                        <input id="recallSearchInput" class="filter-search-input" type="text" placeholder="🔍 Search batch number or medicine name..." oninput="applyRecallFilters()">
+                        <select id="recallStatusFilter" class="filter-select" onchange="applyRecallFilters()">
+                            <option value="ALL">All Batches</option>
+                            <option value="ACTIVE">Active Only (Can Recall)</option>
+                            <option value="RECALLED">Recalled Only (Quarantined)</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 140px;">Batch No.</th>
+                                    <th>Medicine Name</th>
+                                    <th style="width: 120px;">Mfg Date</th>
+                                    <th style="width: 120px;">Expiry Date</th>
+                                    <th style="width: 130px;">Current Status</th>
+                                    <th>Recall Audit Details</th>
+                                    <th style="width: 160px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recallTableBody">
+                                <tr><td colspan="7" style="text-align: center; padding: 24px;">Loading recall registry...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -403,6 +481,44 @@
         </div>
     </div>
 
+    <!-- Recall Confirmation Modal -->
+    <div id="mfgRecallModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 520px;">
+            <div class="modal-header" style="border-bottom: 1px solid #fee2e2; background: #fff1f2; border-radius: 12px 12px 0 0;">
+                <h3 style="color: #991b1b; display: flex; align-items: center; gap: 8px;">
+                    <span>🚨</span> <span>Initiate Product Safety Recall</span>
+                </h3>
+                <button class="modal-close" onclick="closeModal('mfgRecallModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div class="alert alert-error" style="display: block; margin-bottom: 16px; font-size: 0.88rem; line-height: 1.5;">
+                    <b>CRITICAL REGULATORY ACTION:</b> Initiating a recall will immediately flag this batch across the entire PharmaTrace network. Retailers will be prohibited from dispensing it, and scanning the QR code will display an urgent warning to consumers.
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 0.88rem;">
+                    <div style="margin-bottom: 6px;"><b>Medicine:</b> <span id="recallModalMedName" style="color: #0f172a; font-weight: 700;">--</span></div>
+                    <div style="margin-bottom: 6px;"><b>Batch Number:</b> <span id="recallModalBatch" class="batch-pill">--</span></div>
+                    <div><b>Manufacturing Date:</b> <span id="recallModalMfgDate">--</span></div>
+                </div>
+
+                <form id="mfgRecallForm">
+                    <input type="hidden" id="recallModalBatchId">
+                    <div class="form-group">
+                        <label for="recallReasonInput" style="font-weight: 700; color: #0f172a;">Specific Recall Reason / Defect Description *</label>
+                        <textarea id="recallReasonInput" rows="3" placeholder="e.g. Quality audit identified particulate contamination in vial lot #44; regulatory notice CDSCO/2026/099." required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem;"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('mfgRecallModal')">Cancel</button>
+                        <button type="submit" id="confirmRecallBtn" class="btn btn-danger" style="background: #dc2626; color: white;">
+                            Confirm Emergency Recall
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>© 2026 PharmaTrace • Enterprise Pharmaceutical Traceability Platform</p>
     </footer>
@@ -428,6 +544,7 @@
                 else if (sectionId === 'products' && links[1]) links[1].classList.add('active');
                 else if (sectionId === 'register' && links[2]) links[2].classList.add('active');
                 else if (sectionId === 'qrManager' && links[3]) links[3].classList.add('active');
+                else if (sectionId === 'recalls' && links[4]) links[4].classList.add('active');
             }
 
             // Automatically collapse sidebar on smaller screens after navigation
@@ -438,6 +555,8 @@
 
             if (sectionId === 'qrManager') {
                 populateQrSelector();
+            } else if (sectionId === 'recalls') {
+                applyRecallFilters();
             }
         }
 
@@ -454,11 +573,17 @@
 
                 const inDistCount = myBatches.filter(b => b.currentStatus === 'Received' || b.currentStatus === 'In Stock').length;
                 const soldCount = myBatches.filter(b => b.currentStatus === 'Sold').length;
-                const recallCount = myBatches.filter(b => b.currentStatus === 'Recalled').length;
+                const recallCount = myBatches.filter(b => b.currentStatus === 'Recalled' || b.isRecalled).length;
+                const activeCount = myBatches.length - recallCount;
 
                 document.getElementById('mfgInDistribution').textContent = inDistCount;
                 document.getElementById('mfgSold').textContent = soldCount;
                 document.getElementById('mfgRecalled').textContent = recallCount;
+
+                if (document.getElementById('sidebarRecallCount')) document.getElementById('sidebarRecallCount').textContent = recallCount;
+                if (document.getElementById('recallTotalBatches')) document.getElementById('recallTotalBatches').textContent = myBatches.length;
+                if (document.getElementById('recallActiveBatches')) document.getElementById('recallActiveBatches').textContent = activeCount;
+                if (document.getElementById('recallRecalledBatches')) document.getElementById('recallRecalledBatches').textContent = recallCount;
 
                 // Render Recently Added (max 5)
                 const recentList = myBatches.slice(0, 5);
@@ -480,8 +605,9 @@
                     `).join('');
                 }
 
-                // Render main filtered list
+                // Render main filtered lists
                 applyBatchFilters();
+                applyRecallFilters();
                 populateQrSelector();
             } catch (err) {
                 if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color: #ef4444; text-align: center;">Failed to load batches: ${err.message}</td></tr>`;
@@ -528,32 +654,137 @@
                 return;
             }
 
-            tbody.innerHTML = filtered.map(b => `
-                <tr>
-                    <td><span class="batch-pill">${b.batchNumber}</span></td>
-                    <td>
-                        <span style="font-weight: 600; color: #0f172a;">${b.medicineName}</span>
-                        ${b.genericName ? `<div style="color: #64748b; font-size: 0.8rem;">${b.genericName}</div>` : ''}
-                    </td>
-                    <td>
-                        <span style="font-size: 0.85rem;">${b.dosage || 'Standard'}</span>
-                        <div style="color: #94a3b8; font-size: 0.75rem;">${b.packaging || 'Commercial Pack'}</div>
-                    </td>
-                    <td>${Number(b.quantity || 1000).toLocaleString()}</td>
-                    <td>
-                        <div style="font-size: 0.82rem;">Mfg: ${b.manufacturingDate || b.mfgDate}</div>
-                        <div style="font-size: 0.82rem; color: #64748b;">Exp: ${b.expiryDate || b.expDate}</div>
-                    </td>
-                    <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
-                    <td>
-                        <div style="display: flex; gap: 6px;">
-                            <button class="btn-sm btn-secondary" onclick="viewBatchQr('${b._id}')" title="Packaging Label">📱 Label</button>
-                            <button class="btn-sm btn-secondary" onclick="viewBatchHistory('${b._id}')" title="Supply Chain History">📜 Track</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = filtered.map(b => {
+                const isRecalled = b.isRecalled || b.currentStatus === 'Recalled';
+                const recallBtnHtml = isRecalled
+                    ? `<span class="tag-pill" style="background:#fee2e2;color:#991b1b;align-self:center;">⚠️ Recalled</span>`
+                    : `<button class="btn-sm btn-danger" onclick="openRecallModal('${b._id}')" title="Initiate Product Safety Recall" style="padding:4px 8px;font-size:0.75rem;">🚨 Recall</button>`;
+
+                return `
+                    <tr>
+                        <td><span class="batch-pill">${b.batchNumber}</span></td>
+                        <td>
+                            <span style="font-weight: 600; color: #0f172a;">${b.medicineName}</span>
+                            ${b.genericName ? `<div style="color: #64748b; font-size: 0.8rem;">${b.genericName}</div>` : ''}
+                        </td>
+                        <td>
+                            <span style="font-size: 0.85rem;">${b.dosage || 'Standard'}</span>
+                            <div style="color: #94a3b8; font-size: 0.75rem;">${b.packaging || 'Commercial Pack'}</div>
+                        </td>
+                        <td>${Number(b.quantity || 1000).toLocaleString()}</td>
+                        <td>
+                            <div style="font-size: 0.82rem;">Mfg: ${b.manufacturingDate || b.mfgDate}</div>
+                            <div style="font-size: 0.82rem; color: #64748b;">Exp: ${b.expiryDate || b.expDate}</div>
+                        </td>
+                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button class="btn-sm btn-secondary" onclick="viewBatchQr('${b._id}')" title="Packaging Label">📱 Label</button>
+                                <button class="btn-sm btn-secondary" onclick="viewBatchHistory('${b._id}')" title="Supply Chain History">📜 Track</button>
+                                ${recallBtnHtml}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
+
+        function applyRecallFilters() {
+            const tbody = document.getElementById('recallTableBody');
+            if (!tbody) return;
+            const search = (document.getElementById('recallSearchInput')?.value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('recallStatusFilter')?.value || 'ALL';
+
+            let filtered = [...myBatches];
+
+            if (statusFilter === 'ACTIVE') {
+                filtered = filtered.filter(b => !b.isRecalled && b.currentStatus !== 'Recalled');
+            } else if (statusFilter === 'RECALLED') {
+                filtered = filtered.filter(b => b.isRecalled || b.currentStatus === 'Recalled');
+            }
+
+            if (search) {
+                filtered = filtered.filter(b =>
+                    (b.batchNumber && b.batchNumber.toLowerCase().includes(search)) ||
+                    (b.medicineName && b.medicineName.toLowerCase().includes(search)) ||
+                    (b.genericName && b.genericName.toLowerCase().includes(search))
+                );
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">No matching pharmaceutical batches found for the selected recall filter.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(b => {
+                const isRecalled = b.isRecalled || b.currentStatus === 'Recalled';
+                const recallDetails = isRecalled
+                    ? `<div style="font-size:0.83rem; color:#b91c1c;">
+                         <b>Reason:</b> ${b.recallReason || 'Safety alert'}
+                         ${b.recalledAt ? `<div style="font-size:0.75rem; color:#64748b; margin-top:2px;">📅 ${new Date(b.recalledAt).toLocaleDateString()}</div>` : ''}
+                       </div>`
+                    : '<span style="color:#64748b; font-size:0.85rem;">Active in distribution</span>';
+
+                const actionHtml = isRecalled
+                    ? `<span class="status-badge status-recalled" style="font-size:0.8rem;">⚠️ Quarantined</span>`
+                    : `<button class="btn-sm btn-danger" onclick="openRecallModal('${b._id}')">🚨 Initiate Recall</button>`;
+
+                return `
+                    <tr>
+                        <td><span class="batch-pill">${b.batchNumber}</span></td>
+                        <td><b>${b.medicineName}</b>${b.genericName ? `<div style="color:#64748b; font-size:0.8rem;">${b.genericName}</div>` : ''}</td>
+                        <td>${b.manufacturingDate || b.mfgDate}</td>
+                        <td>${b.expiryDate || b.expDate}</td>
+                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                        <td>${recallDetails}</td>
+                        <td>${actionHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openRecallModal(batchId) {
+            const b = myBatches.find(x => x._id === batchId || x.batchNumber === batchId);
+            if (!b) return;
+            document.getElementById('recallModalBatchId').value = b._id;
+            document.getElementById('recallModalMedName').textContent = b.medicineName;
+            document.getElementById('recallModalBatch').textContent = b.batchNumber;
+            document.getElementById('recallModalMfgDate').textContent = b.manufacturingDate || b.mfgDate || '—';
+            document.getElementById('recallReasonInput').value = '';
+            openModal('mfgRecallModal');
+        }
+
+        document.getElementById('mfgRecallForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const batchId = document.getElementById('recallModalBatchId').value;
+            const reason = document.getElementById('recallReasonInput').value.trim();
+            const btn = document.getElementById('confirmRecallBtn');
+            const orig = btn.textContent;
+
+            if (!reason) {
+                alert('Please provide a specific recall reason.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Processing emergency recall...';
+
+            try {
+                await api(`/api/medicines/${batchId}/recall`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reason })
+                });
+
+                closeModal('mfgRecallModal');
+                showMessage(document.getElementById('mfgAlert'), `Emergency recall successfully issued. The batch has been quarantined across all retailer inventories and public customer verification.`, 'success');
+                await loadMyBatches();
+            } catch (err) {
+                alert('Recall failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = orig;
+            }
+        });
 
         function populateQrSelector() {
             const selector = document.getElementById('qrBatchSelector');

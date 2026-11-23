@@ -470,15 +470,32 @@ exports.recallBatch = async (req, res) => {
             return res.status(400).json({ message: 'A specific reason for the medicine recall is required.' });
         }
 
-        const medicine = await Medicine.findOne({ _id: req.params.id, isDeleted: false });
+        const idParam = (req.params.id || '').trim();
+        let medicine = null;
+
+        if (isMongoConnected()) {
+            const queryOr = [
+                { verificationToken: idParam },
+                { batchNumber: idParam.toUpperCase() }
+            ];
+            if (idParam.match(/^[0-9a-fA-F]{24}$/)) {
+                queryOr.push({ _id: idParam });
+            }
+            medicine = await Medicine.findOne({ $or: queryOr, isDeleted: false });
+        } else {
+            medicine = findFallbackMedicine(idParam);
+        }
+
         if (!medicine) return res.status(404).json({ message: 'Medicine batch not found.' });
 
         // Authorization: Admin or the manufacturer who owns this batch
         const isAdmin = req.user.role === 'admin';
-        const isOwner = medicine.manufacturerId && medicine.manufacturerId.toString() === req.user._id.toString();
+        const isOwner = medicine.manufacturerId && req.user._id && medicine.manufacturerId.toString() === req.user._id.toString();
 
         if (!isAdmin && !isOwner) {
-            return res.status(403).json({ message: 'You are not authorized to recall this batch.' });
+            return res.status(403).json({
+                message: 'Forbidden: You are not authorized to recall this batch. A manufacturer can only recall medicines produced by their own organization.'
+            });
         }
 
         const previousStatus = medicine.currentStatus;
@@ -490,52 +507,59 @@ exports.recallBatch = async (req, res) => {
         const recallCheckpoint = {
             stage: 'Recall Notice',
             status: 'Recalled',
-            location: req.user.organization || 'Regulatory / Manufacturer Office',
+            location: req.user.organization || req.user.name || 'Regulatory / Manufacturer Office',
             description: `URGENT RECALL: ${reason.trim()}`,
             updatedBy: req.user._id,
             updaterName: req.user.name,
             timestamp: new Date()
         };
 
+        if (!medicine.checkpoints) medicine.checkpoints = [];
         medicine.checkpoints.push(recallCheckpoint);
-        await medicine.save();
+
+        if (typeof medicine.save === 'function') {
+            await medicine.save();
+        }
 
         // Record tracking history
-        await TrackingHistory.create({
-            medicineId: medicine._id,
-            batchNumber: medicine.batchNumber,
-            previousStatus,
-            newStatus: 'Recalled',
-            updatedBy: req.user._id,
-            updaterName: req.user.name,
-            userRole: req.user.role,
-            remarks: `RECALL ISSUED: ${reason.trim()}`,
-            location: req.user.organization || 'Headquarters'
-        });
+        if (isMongoConnected()) {
+            await TrackingHistory.create({
+                medicineId: medicine._id,
+                batchNumber: medicine.batchNumber,
+                previousStatus,
+                newStatus: 'Recalled',
+                updatedBy: req.user._id,
+                updaterName: req.user.name,
+                userRole: req.user.role,
+                remarks: `RECALL ISSUED: ${reason.trim()}`,
+                location: req.user.organization || req.user.name || 'Headquarters'
+            }).catch(() => {});
 
-        // Broadcast urgent notification
-        await Notification.create({
-            role: 'all',
-            title: `CRITICAL RECALL: ${medicine.medicineName}`,
-            message: `Batch ${medicine.batchNumber} has been recalled. Reason: ${reason.trim()}`,
-            type: 'danger',
-            link: `customer.html?token=${medicine.verificationToken}`
-        });
+            // Broadcast urgent notification
+            await Notification.create({
+                role: 'all',
+                title: `CRITICAL RECALL: ${medicine.medicineName}`,
+                message: `Batch ${medicine.batchNumber} has been recalled by manufacturer ${req.user.name}. Reason: ${reason.trim()}`,
+                type: 'danger',
+                link: `customer.html?token=${medicine.verificationToken || medicine.batchNumber}`
+            }).catch(() => {});
 
-        await logAudit({
-            performedBy: req.user._id,
-            performerName: req.user.name,
-            performerRole: req.user.role,
-            action: 'BATCH_RECALLED',
-            targetType: 'Medicine',
-            targetId: medicine._id,
-            previousData: { status: previousStatus },
-            updatedData: { status: 'Recalled', reason },
-            req
-        });
+            await logAudit({
+                performedBy: req.user._id,
+                performerName: req.user.name,
+                performerRole: req.user.role,
+                action: 'BATCH_RECALLED',
+                targetType: 'Medicine',
+                targetId: medicine._id,
+                previousData: { status: previousStatus },
+                updatedData: { status: 'Recalled', reason: reason.trim() },
+                req
+            }).catch(() => {});
+        }
 
         res.json({ message: 'Medicine batch successfully recalled.', medicine });
     } catch (error) {
+        console.error('Recall error:', error);
         res.status(500).json({ message: 'Could not recall batch.' });
     }
 };

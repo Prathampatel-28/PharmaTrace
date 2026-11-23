@@ -53,6 +53,13 @@ function getStatusBadgeClass(status) {
 }
 
 async function fetchCurrentUser() {
+    const hasToken = localStorage.getItem('pharmatrace_token');
+    const hasCookie = typeof document !== 'undefined' && document.cookie.includes('token=');
+    if (!hasToken && !hasCookie) {
+        currentUser = null;
+        localStorage.removeItem('pharmatrace_user');
+        return null;
+    }
     try {
         const data = await api('/api/auth/me');
         currentUser = data.user;
@@ -150,6 +157,12 @@ async function renderNavbar(activePage = '') {
             <li><a href="customer.html">🔍 Public Verify</a></li>
         `;
     } else if (activePage === 'customer') {
+        let returnLink = '';
+        if (user) {
+            if (user.role === 'retailer') returnLink = '<li><a href="retailer.html" style="color:#38bdf8;font-weight:700;">🏪 Back to Retailer Portal</a></li>';
+            else if (user.role === 'manufacturer') returnLink = '<li><a href="manufacturer.html" style="color:#38bdf8;font-weight:700;">🏭 Back to Manufacturer Portal</a></li>';
+            else if (user.role === 'admin') returnLink = '<li><a href="admin.html" style="color:#38bdf8;font-weight:700;">⚙️ Admin Console</a></li>';
+        }
         brandHtml = `
             <a class="nav-brand" href="customer.html">
                 <span>💊 PharmaTrace</span>
@@ -159,6 +172,7 @@ async function renderNavbar(activePage = '') {
         navLinksHtml = `
             <li><a class="active" href="customer.html">🔍 Verify Medicine</a></li>
             <li><a href="#howItProtectsSection">🛡️ How It Protects You</a></li>
+            ${returnLink}
         `;
     } else if (activePage === 'admin' || (user && user.role === 'admin')) {
         brandHtml = `
@@ -327,11 +341,8 @@ async function requireAuth(allowedRoles = []) {
         return null;
     }
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        alert(`Access Restricted: This dashboard requires ${allowedRoles.join(' or ')} privileges. Redirecting to your portal...`);
-        if (user.role === 'admin') window.location.href = 'admin.html';
-        else if (user.role === 'manufacturer') window.location.href = 'manufacturer.html';
-        else if (user.role === 'retailer') window.location.href = 'retailer.html';
-        else window.location.href = 'customer.html';
+        alert(`Access Restricted: This dashboard requires ${allowedRoles.join(' or ')} privileges. You are currently logged in as "${user.role}" (${user.email}). Redirecting to sign in...`);
+        window.location.href = `login.html?redirect=${encodeURIComponent(window.location.pathname)}&roleMismatch=${encodeURIComponent(allowedRoles.join(','))}`;
         return null;
     }
     return user;

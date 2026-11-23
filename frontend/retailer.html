@@ -185,6 +185,115 @@
         </div>
     </div>
 
+    <!-- Medicine Batch Details Modal (Inside Retailer Portal) -->
+    <div id="batchDetailsModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3>📋 Pharmaceutical Batch Specifications</h3>
+                <button class="modal-close" onclick="closeModal('batchDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <!-- Recalled Banner (dynamically toggled) -->
+                <div id="modalRecallBanner" class="alert alert-error" style="display: none; margin-bottom: 16px;">
+                    <b style="display: block; font-size: 1rem;">🚨 URGENT SAFETY RECALL NOTICE</b>
+                    <span id="modalRecallReason">This batch has been officially recalled by the manufacturer. Quarantine immediately. DO NOT DISPENSE.</span>
+                    <div id="modalRecallDate" style="font-size: 0.75rem; color: #991b1b; margin-top: 4px;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <h2 id="modalDetMedName" style="font-size: 1.35rem; color: #0f172a; margin-bottom: 2px;">Medicine Name</h2>
+                        <div id="modalDetGeneric" style="color: #64748b; font-size: 0.88rem;">Generic Formulation</div>
+                    </div>
+                    <div>
+                        <span id="modalDetStatus" class="status-badge">Status</span>
+                    </div>
+                </div>
+
+                <div class="result-grid" style="margin-bottom: 14px;">
+                    <div class="result-tile">
+                        <div class="result-tile-lbl">Batch Number</div>
+                        <div id="modalDetBatch" class="result-tile-val">--</div>
+                    </div>
+                    <div class="result-tile">
+                        <div class="result-tile-lbl">Licensed Manufacturer</div>
+                        <div id="modalDetMfg" class="result-tile-val">--</div>
+                    </div>
+                    <div class="result-tile">
+                        <div class="result-tile-lbl">Manufacturing Date</div>
+                        <div id="modalDetMfgDate" class="result-tile-val">--</div>
+                    </div>
+                    <div class="result-tile">
+                        <div class="result-tile-lbl">Expiry Date</div>
+                        <div id="modalDetExpDate" class="result-tile-val">--</div>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.85rem; line-height: 1.6;">
+                    <div><b>Active Ingredients:</b> <span id="modalDetComposition">--</span></div>
+                    <div><b>Dosage & Strength:</b> <span id="modalDetDosage">--</span></div>
+                    <div><b>Packaging Format:</b> <span id="modalDetPackaging">--</span></div>
+                    <div><b>Storage Conditions:</b> <span id="modalDetStorage">--</span></div>
+                </div>
+
+                <h4 style="font-size: 0.95rem; color: #0f172a; margin-bottom: 10px;">📍 Supply Chain Checkpoints & Timeline</h4>
+                <div id="modalDetTimeline" style="max-height: 220px; overflow-y: auto; padding-right: 4px;"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+                    <button class="btn btn-secondary btn-sm" onclick="closeModal('batchDetailsModal')">Close</button>
+                    <button id="modalDetActionBtn" class="btn btn-sm" onclick="proceedToUpdateFromDetails()">⚡ Update Stage</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stage Update Modal -->
+    <div id="quickUpdateModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>⚡ Log Supply Chain Stage Update</h3>
+                <button class="modal-close" onclick="closeModal('quickUpdateModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="quickUpdateAlert" class="alert"></div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 0.88rem;">
+                    <div><b>Batch:</b> <span id="quickBatchNumber" class="batch-pill">--</span></div>
+                    <div style="margin-top: 4px;"><b>Medicine:</b> <span id="quickMedName" style="font-weight: 700; color: #0f172a;">--</span></div>
+                    <div style="margin-top: 4px;"><b>Current Status:</b> <span id="quickCurrentStatus" class="status-badge" style="font-size: 0.72rem;">--</span></div>
+                </div>
+
+                <form id="quickUpdateForm">
+                    <input type="hidden" id="quickBatchId">
+                    <div class="form-group">
+                        <label for="quickStatus">Supply Chain Stage Update *</label>
+                        <select id="quickStatus" required>
+                            <option value="Received">Received (Shipment arrived, packaging verified)</option>
+                            <option value="In Stock">In Stock (Placed on pharmacy shelf ready for sale)</option>
+                            <option value="Sold">Sold (Dispensed against customer prescription)</option>
+                            <option value="Recalled">Recalled (Quarantined due to safety alert)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quickLocation">Pharmacy / Retail Location *</label>
+                        <input id="quickLocation" type="text" placeholder="e.g. Apollo Pharmacy, Bilaspur Outlet #4" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quickNote">Audit Remarks / Handling Note *</label>
+                        <input id="quickNote" type="text" placeholder="e.g. Temperature checked (21°C), placed in shelf A-3" required>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('quickUpdateModal')">Cancel</button>
+                        <button type="submit" id="quickSubmitBtn" class="btn">Log Status in Ledger</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>© 2026 PharmaTrace • Retail Pharmacy Module</p>
     </footer>
@@ -193,6 +302,7 @@
     <script>
         let availableBatches = [];
         let html5QrScanner = null;
+        let activeDetailBatchId = null;
 
         async function loadRetailerData() {
             const select = document.getElementById('batchSelect');
@@ -205,20 +315,20 @@
                 document.getElementById('retAvailCount').textContent = availableBatches.length;
                 document.getElementById('retInStockCount').textContent = availableBatches.filter(b => b.currentStatus === 'In Stock').length;
                 document.getElementById('retSoldCount').textContent = availableBatches.filter(b => b.currentStatus === 'Sold').length;
-                document.getElementById('retRecalledCount').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled').length;
+                document.getElementById('retRecalledCount').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled' || b.isRecalled).length;
 
                 if (document.getElementById('countAll')) document.getElementById('countAll').textContent = availableBatches.length;
                 if (document.getElementById('countRecv')) document.getElementById('countRecv').textContent = availableBatches.filter(b => b.currentStatus === 'Received').length;
                 if (document.getElementById('countStock')) document.getElementById('countStock').textContent = availableBatches.filter(b => b.currentStatus === 'In Stock').length;
                 if (document.getElementById('countSold')) document.getElementById('countSold').textContent = availableBatches.filter(b => b.currentStatus === 'Sold').length;
-                if (document.getElementById('countRecall')) document.getElementById('countRecall').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled').length;
+                if (document.getElementById('countRecall')) document.getElementById('countRecall').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled' || b.isRecalled).length;
 
                 select.innerHTML = '<option value="">-- Choose a medicine batch --</option>';
                 availableBatches.forEach(b => {
                     const opt = document.createElement('option');
                     opt.value = b._id;
                     opt.textContent = `${b.batchNumber} — ${b.medicineName} [${b.currentStatus}]`;
-                    if (b.currentStatus === 'Recalled') opt.style.color = '#ef4444';
+                    if (b.currentStatus === 'Recalled' || b.isRecalled) opt.style.color = '#ef4444';
                     select.appendChild(opt);
                 });
 
@@ -250,7 +360,11 @@
 
             let list = [...availableBatches];
             if (statusFilter !== 'ALL') {
-                list = list.filter(b => b.currentStatus === statusFilter);
+                if (statusFilter === 'Recalled') {
+                    list = list.filter(b => b.currentStatus === 'Recalled' || b.isRecalled);
+                } else {
+                    list = list.filter(b => b.currentStatus === statusFilter);
+                }
             }
             if (search) {
                 list = list.filter(b =>
@@ -265,21 +379,28 @@
                 return;
             }
 
-            stockBody.innerHTML = list.map(b => `
-                <tr>
-                    <td><span class="batch-pill">${b.batchNumber}</span></td>
-                    <td><b>${b.medicineName}</b></td>
-                    <td>${b.manufacturerName || 'Authorized Manufacturer'}</td>
-                    <td>${b.expiryDate || b.expDate}</td>
-                    <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
-                    <td>
-                        <div style="display: flex; gap: 6px;">
-                            <button class="btn-sm btn-secondary" onclick="selectBatchForUpdate('${b._id}')">Select</button>
-                            <a href="customer.html?token=${b.batchNumber}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+            stockBody.innerHTML = list.map(b => {
+                const isRecalled = b.isRecalled || b.currentStatus === 'Recalled';
+                const actionBtns = `
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button class="btn-sm btn-secondary" onclick="openBatchDetailsModal('${b._id}')" title="Inspect full batch details">📋 Details</button>
+                        ${isRecalled ?
+                            `<button class="btn-sm" disabled style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;cursor:not-allowed;" title="Batch is recalled and quarantined. Cannot update status.">⚠️ Recalled</button>` :
+                            `<button class="btn-sm btn-primary" onclick="openQuickUpdateModal('${b._id}')" title="Update Supply Chain Stage">⚡ Update</button>`
+                        }
+                    </div>
+                `;
+                return `
+                    <tr>
+                        <td><span class="batch-pill">${b.batchNumber}</span></td>
+                        <td><b>${b.medicineName}</b>${b.genericName ? `<div style="color:#64748b;font-size:0.78rem;">${b.genericName}</div>` : ''}</td>
+                        <td>${b.manufacturerName || 'Authorized Manufacturer'}</td>
+                        <td>${b.expiryDate || b.expDate}</td>
+                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                        <td>${actionBtns}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function selectStockTab(status, btn) {
@@ -310,8 +431,24 @@
         function selectBatchForUpdate(id) {
             const select = document.getElementById('batchSelect');
             select.value = id;
+            handleBatchSelectionChange();
             document.getElementById('retailerForm').scrollIntoView({ behavior: 'smooth' });
         }
+
+        function handleBatchSelectionChange() {
+            const select = document.getElementById('batchSelect');
+            const msg = document.getElementById('updateMsg');
+            msg.style.display = 'none';
+            const b = availableBatches.find(x => x._id === select.value);
+            if (!b) return;
+
+            if (b.isRecalled || b.currentStatus === 'Recalled') {
+                showMessage(msg, `⚠️ WARNING: Batch "${b.batchNumber}" has been officially RECALLED. It cannot be marked as Received, In Stock, or Sold.`, 'error');
+                document.getElementById('status').value = 'Recalled';
+            }
+        }
+
+        document.getElementById('batchSelect').addEventListener('change', handleBatchSelectionChange);
 
         document.getElementById('retailerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -324,24 +461,183 @@
                 return;
             }
 
+            const targetBatch = availableBatches.find(b => b._id === batchId);
+            const selectedStatus = document.getElementById('status').value;
+
+            if (targetBatch && (targetBatch.isRecalled || targetBatch.currentStatus === 'Recalled') && selectedStatus !== 'Recalled') {
+                showMessage(msg, 'SECURITY ALERT: This batch has been officially RECALLED and cannot be marked as In Stock or Sold.', 'error');
+                return;
+            }
+
             const payload = {
-                status: document.getElementById('status').value,
+                status: selectedStatus,
                 location: document.getElementById('retailerLocation').value.trim(),
                 note: document.getElementById('note').value.trim()
             };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const origText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Recording in blockchain ledger...';
 
             try {
                 await api(`/api/retailer/status/${batchId}`, {
                     method: 'PUT',
                     body: JSON.stringify(payload)
                 });
-                showMessage(msg, `Medicine status updated to "${payload.status}" successfully!`, 'success');
+                showMessage(msg, `Medicine status updated to "${payload.status}" successfully! Ledger updated.`, 'success');
                 document.getElementById('note').value = '';
                 await loadRetailerData();
             } catch (err) {
                 showMessage(msg, err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = origText;
             }
         });
+
+        // Quick Stage Update Modal
+        function openQuickUpdateModal(batchId) {
+            const b = availableBatches.find(x => x._id === batchId);
+            if (!b) return;
+
+            document.getElementById('quickBatchId').value = b._id;
+            document.getElementById('quickBatchNumber').textContent = b.batchNumber;
+            document.getElementById('quickMedName').textContent = b.medicineName;
+            document.getElementById('quickCurrentStatus').textContent = b.currentStatus;
+            document.getElementById('quickCurrentStatus').className = `status-badge ${getStatusBadgeClass(b.currentStatus)}`;
+
+            // Default next recommended status
+            const statusSelect = document.getElementById('quickStatus');
+            if (b.currentStatus === 'Manufactured') statusSelect.value = 'Received';
+            else if (b.currentStatus === 'Received') statusSelect.value = 'In Stock';
+            else if (b.currentStatus === 'In Stock') statusSelect.value = 'Sold';
+            else statusSelect.value = b.currentStatus;
+
+            const user = getCachedUser();
+            if (user && user.organization) {
+                document.getElementById('quickLocation').value = user.organization;
+            }
+            document.getElementById('quickNote').value = '';
+            document.getElementById('quickUpdateAlert').style.display = 'none';
+
+            openModal('quickUpdateModal');
+        }
+
+        document.getElementById('quickUpdateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertEl = document.getElementById('quickUpdateAlert');
+            alertEl.style.display = 'none';
+
+            const batchId = document.getElementById('quickBatchId').value;
+            const targetBatch = availableBatches.find(b => b._id === batchId);
+            const status = document.getElementById('quickStatus').value;
+
+            if (targetBatch && (targetBatch.isRecalled || targetBatch.currentStatus === 'Recalled') && status !== 'Recalled') {
+                showMessage(alertEl, 'SECURITY ALERT: This batch has been officially RECALLED and cannot be marked as In Stock or Sold.', 'error');
+                return;
+            }
+
+            const payload = {
+                status,
+                location: document.getElementById('quickLocation').value.trim(),
+                note: document.getElementById('quickNote').value.trim()
+            };
+
+            const btn = document.getElementById('quickSubmitBtn');
+            const orig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Updating ledger...';
+
+            try {
+                await api(`/api/retailer/status/${batchId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                closeModal('quickUpdateModal');
+                showMessage(document.getElementById('retailerAlert'), `Status for batch ${targetBatch ? targetBatch.batchNumber : ''} updated to "${status}" successfully!`, 'success');
+                await loadRetailerData();
+            } catch (err) {
+                showMessage(alertEl, err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = orig;
+            }
+        });
+
+        // Batch Details Modal
+        function openBatchDetailsModal(batchId) {
+            const b = availableBatches.find(x => x._id === batchId);
+            if (!b) return;
+
+            activeDetailBatchId = b._id;
+
+            document.getElementById('modalDetMedName').textContent = b.medicineName;
+            document.getElementById('modalDetGeneric').textContent = b.genericName || 'Standard Formulation';
+            document.getElementById('modalDetStatus').textContent = b.currentStatus;
+            document.getElementById('modalDetStatus').className = `status-badge ${getStatusBadgeClass(b.currentStatus)}`;
+
+            document.getElementById('modalDetBatch').textContent = b.batchNumber;
+            document.getElementById('modalDetMfg').textContent = b.manufacturerName || 'Authorized Manufacturer';
+            document.getElementById('modalDetMfgDate').textContent = b.manufacturingDate || b.mfgDate || '—';
+            document.getElementById('modalDetExpDate').textContent = b.expiryDate || b.expDate || '—';
+
+            document.getElementById('modalDetComposition').textContent = b.composition || 'Active formulation verified';
+            document.getElementById('modalDetDosage').textContent = b.dosage || 'Standard pharmaceutical dosage';
+            document.getElementById('modalDetPackaging').textContent = b.packaging || 'Commercial Unit Pack';
+            document.getElementById('modalDetStorage').textContent = b.storageInstructions || 'Store in cool, dry place';
+
+            const isRecalled = b.isRecalled || b.currentStatus === 'Recalled';
+            const recallBanner = document.getElementById('modalRecallBanner');
+            const actionBtn = document.getElementById('modalDetActionBtn');
+
+            if (isRecalled) {
+                recallBanner.style.display = 'block';
+                document.getElementById('modalRecallReason').textContent = b.recallReason ? `Reason: ${b.recallReason}` : 'Batch formally recalled from the market. DO NOT DISPENSE.';
+                document.getElementById('modalRecallDate').textContent = b.recalledAt ? `Recall Date: ${new Date(b.recalledAt).toLocaleString()}` : '';
+                actionBtn.disabled = true;
+                actionBtn.textContent = '⚠️ Quarantined';
+                actionBtn.style.opacity = '0.6';
+            } else {
+                recallBanner.style.display = 'none';
+                actionBtn.disabled = false;
+                actionBtn.textContent = '⚡ Update Stage';
+                actionBtn.style.opacity = '1';
+            }
+
+            // Render timeline
+            const timeline = document.getElementById('modalDetTimeline');
+            const checkpoints = b.checkpoints && b.checkpoints.length > 0 ? b.checkpoints : [
+                {
+                    stage: 'Manufacturer',
+                    status: 'Manufactured',
+                    location: b.manufacturerName || 'Production Plant',
+                    description: 'Batch produced and cryptographically sealed.',
+                    timestamp: b.createdAt || new Date()
+                }
+            ];
+
+            timeline.innerHTML = checkpoints.map((cp, idx) => `
+                <div style="padding: 10px; border-left: 3px solid #0284c7; background: #f8fafc; border-radius: 4px; margin-bottom: 8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <b style="font-size:0.85rem; color:#0f172a;">${idx + 1}. ${cp.stage || cp.status}</b>
+                        <span class="${getStatusBadgeClass(cp.status)}" style="font-size:0.7rem; padding:2px 8px;">${cp.status}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#475569; margin-top:2px;">📍 ${cp.location || 'Location Not Recorded'}</div>
+                    ${cp.description ? `<div style="font-size:0.78rem; color:#64748b; margin-top:2px;">${cp.description}</div>` : ''}
+                    <div style="font-size:0.72rem; color:#94a3b8; margin-top:3px;">🕒 ${new Date(cp.timestamp).toLocaleString()}</div>
+                </div>
+            `).join('');
+
+            openModal('batchDetailsModal');
+        }
+
+        function proceedToUpdateFromDetails() {
+            closeModal('batchDetailsModal');
+            if (activeDetailBatchId) {
+                openQuickUpdateModal(activeDetailBatchId);
+            }
+        }
 
         // Live Camera Scanner
         function openScannerModal() {
@@ -386,13 +682,12 @@
                 document.getElementById('scannerResult').textContent = '✅ Scanned: ' + token;
 
                 // Match with available batches
-                const match = availableBatches.find(b => b.verificationToken === token || b._id === token || b.batchNumber === token.toUpperCase());
+                const match = availableBatches.find(b => b.verificationToken === token || b._id === token || (b.batchNumber && b.batchNumber.toUpperCase() === token.toUpperCase()));
                 if (match) {
-                    selectBatchForUpdate(match._id);
                     closeScannerModal();
+                    openBatchDetailsModal(match._id);
                 } else {
-                    alert(`Scanned batch (${token}) identified. Opening verification...`);
-                    window.location.href = `customer.html?token=${encodeURIComponent(token)}`;
+                    document.getElementById('scannerResult').textContent = `Batch (${token}) not found in distribution inventory.`;
                 }
             } catch {
                 document.getElementById('scannerResult').textContent = 'Scanned: ' + urlOrToken;

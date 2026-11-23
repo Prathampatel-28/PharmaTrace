@@ -11,7 +11,7 @@ exports.getAvailableBatches = async (req, res) => {
     }
     try {
         const batches = await Medicine.find({ isDeleted: false })
-            .select('medicineName batchNumber currentStatus manufacturingDate expiryDate manufacturerName composition packaging isRecalled')
+            .select('medicineName genericName batchNumber currentStatus manufacturingDate expiryDate manufacturerName composition dosage packaging storageInstructions isRecalled recallReason recalledAt checkpoints createdAt')
             .sort({ createdAt: -1 });
         res.json(batches);
     } catch (error) {
@@ -38,20 +38,21 @@ exports.updateStatus = async (req, res) => {
             return res.status(400).json({ message: 'Retailer pharmacy name / city location is required.' });
         }
 
+        const idParam = (req.params.id || '').trim();
         let medicine = null;
         if (isMongoConnected()) {
-            medicine = await Medicine.findOne({
-                $or: [
-                    { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null },
-                    { verificationToken: req.params.id },
-                    { batchNumber: req.params.id.toUpperCase() }
-                ],
-                isDeleted: false
-            });
+            const queryOr = [
+                { verificationToken: idParam },
+                { batchNumber: idParam.toUpperCase() }
+            ];
+            if (idParam.match(/^[0-9a-fA-F]{24}$/)) {
+                queryOr.push({ _id: idParam });
+            }
+            medicine = await Medicine.findOne({ $or: queryOr, isDeleted: false });
         }
 
         if (!medicine) {
-            medicine = findFallbackMedicine(req.params.id);
+            medicine = findFallbackMedicine(idParam);
         }
 
         if (!medicine) {
@@ -62,7 +63,7 @@ exports.updateStatus = async (req, res) => {
         if (medicine.isRecalled || medicine.currentStatus === 'Recalled') {
             if (status !== 'Recalled') {
                 return res.status(400).json({
-                    message: 'SECURITY ALERT: This batch has been officially RECALLED. It cannot be marked as In Stock or Sold.'
+                    message: 'SECURITY ALERT: This batch has been officially RECALLED. It cannot be marked as Received, In Stock, or Sold.'
                 });
             }
         }

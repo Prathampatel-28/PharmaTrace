@@ -112,10 +112,29 @@ body {
     letter-spacing: 0.05em;
 }
 
-.role-admin { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-.role-manufacturer { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-.role-retailer { background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
-.role-customer { background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.role-admin {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.role-manufacturer {
+    background-color: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.role-retailer {
+    background-color: #e0e7ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
+}
+
+.role-customer {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
 
 .user-profile-menu {
     position: relative;
@@ -241,11 +260,31 @@ body {
     z-index: 1001;
 }
 
-.notif-dropdown.show { display: block; }
-.notif-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
-.notif-item.unread { background-color: #f0f9ff; font-weight: 600; }
-.notif-item .notif-title { color: #0f172a; font-size: 0.85rem; margin-bottom: 2px; }
-.notif-item .notif-time { color: #94a3b8; font-size: 0.72rem; }
+.notif-dropdown.show {
+    display: block;
+}
+
+.notif-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.85rem;
+}
+
+.notif-item.unread {
+    background-color: #f0f9ff;
+    font-weight: 600;
+}
+
+.notif-item .notif-title {
+    color: #0f172a;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+
+.notif-item .notif-time {
+    color: #94a3b8;
+    font-size: 0.72rem;
+}
 
 /* Page Header Banner */
 .page-header {
@@ -325,11 +364,30 @@ body {
     flex-shrink: 0;
 }
 
-.icon-blue { background: #e0f2fe; color: #0284c7; }
-.icon-green { background: #dcfce7; color: #16a34a; }
-.icon-amber { background: #fef3c7; color: #d97706; }
-.icon-purple { background: #f3e8ff; color: #9333ea; }
-.icon-red { background: #fee2e2; color: #dc2626; }
+.icon-blue {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.icon-green {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.icon-amber {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.icon-purple {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.icon-red {
+    background: #fee2e2;
+    color: #dc2626;
+}
 
 .metric-info {
     flex: 1;
@@ -497,7 +555,8 @@ body {
     border: 1px solid #a7f3d0;
 }
 
-.alert-error, .alert-danger {
+.alert-error,
+.alert-danger {
     background-color: #fef2f2;
     color: #991b1b;
     border: 1px solid #fecaca;
@@ -551,19 +610,22 @@ body {
     letter-spacing: 0.04em;
 }
 
-.status-factory, .status-manufactured {
+.status-factory,
+.status-manufactured {
     background-color: #fef3c7;
     color: #92400e;
     border: 1px solid #fde68a;
 }
 
-.status-distributor, .status-received {
+.status-distributor,
+.status-received {
     background-color: #e0e7ff;
     color: #3730a3;
     border: 1px solid #c7d2fe;
 }
 
-.status-pharmacy, .status-in-stock {
+.status-pharmacy,
+.status-in-stock {
     background-color: #dcfce7;
     color: #166534;
     border: 1px solid #bbf7d0;
@@ -741,8 +803,15 @@ body {
 }
 
 @keyframes modalSlide {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .modal-header {
@@ -766,7 +835,9 @@ body {
     color: #94a3b8;
 }
 
-.modal-close:hover { color: #0f172a; }
+.modal-close:hover {
+    color: #0f172a;
+}
 
 .modal-body {
     padding: 24px;
@@ -1104,9 +1175,12 @@ footer {
     body * {
         visibility: hidden;
     }
-    #printLabelArea, #printLabelArea * {
+
+    #printLabelArea,
+    #printLabelArea * {
         visibility: visible;
     }
+
     #printLabelArea {
         position: absolute;
         left: 0;
@@ -1121,12 +1195,14 @@ footer {
     .dashboard-layout {
         flex-direction: column;
     }
+
     .sidebar {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid #1e293b;
         transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out;
     }
+
     .sidebar.collapsed {
         display: none !important;
     }
@@ -1141,14 +1217,17 @@ footer {
         align-items: flex-start;
         gap: 12px;
     }
+
     .nav-links {
         flex-wrap: wrap;
     }
+
     .page-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
     }
+
     .form-row {
         flex-direction: column;
         gap: 0;

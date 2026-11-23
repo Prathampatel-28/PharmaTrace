@@ -312,6 +312,7 @@
         }
 
         function fillCredentials(email, password) {
+            if (isLoginInProgress) return;
             switchAuthTab('login');
             document.getElementById('loginEmail').value = email;
             document.getElementById('loginPassword').value = password;
@@ -319,6 +320,7 @@
         }
 
         function switchAuthTab(tab) {
+            if (isLoginInProgress) return;
             alertBox.style.display = 'none';
             document.querySelectorAll('.auth-tab-btn').forEach(b => b.classList.remove('active'));
 
@@ -359,30 +361,46 @@
             else window.location.href = 'customer.html';
         }
 
+        // In-flight guard to prevent duplicate concurrent authentication requests
+        let isLoginInProgress = false;
+
         // 1. Sign In
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (isLoginInProgress) return;
+
+            const emailInput = document.getElementById('loginEmail');
+            const passInput = document.getElementById('loginPassword');
+            const email = (emailInput.value || '').trim();
+            const password = passInput.value || '';
+
+            if (!email || !password) {
+                showMessage(alertBox, 'Please provide both email and password.', 'error');
+                return;
+            }
+
+            isLoginInProgress = true;
             alertBox.style.display = 'none';
             const btn = document.getElementById('loginSubmitBtn');
             const origText = btn.textContent;
             btn.disabled = true;
             btn.textContent = 'Verifying credentials...';
+            document.querySelectorAll('.demo-pill-btn').forEach(b => b.disabled = true);
 
             try {
                 const res = await api('/api/auth/login', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        email: document.getElementById('loginEmail').value.trim(),
-                        password: document.getElementById('loginPassword').value
-                    })
+                    body: JSON.stringify({ email, password })
                 });
                 if (res.token) localStorage.setItem('pharmatrace_token', res.token);
                 if (res.user) localStorage.setItem('pharmatrace_user', JSON.stringify(res.user));
                 showMessage(alertBox, `Authenticated as ${res.user.role.toUpperCase()} (${res.user.name})! Redirecting to your dashboard...`, 'success');
-                setTimeout(() => redirectByRole(res.user.role), 600);
+                setTimeout(() => redirectByRole(res.user.role), 500);
             } catch (err) {
                 btn.disabled = false;
                 btn.textContent = origText;
+                document.querySelectorAll('.demo-pill-btn').forEach(b => b.disabled = false);
+                isLoginInProgress = false;
                 showMessage(alertBox, err.message, 'error');
             }
         });
@@ -504,10 +522,35 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             renderNavbar('login');
-            const user = await fetchCurrentUser();
-            // If already logged in, redirect straight to their dashboard
-            if (user) {
-                redirectByRole(user.role);
+            const params = new URLSearchParams(window.location.search);
+            const redirect = params.get('redirect');
+            const roleMismatch = params.get('roleMismatch');
+
+            if (roleMismatch) {
+                showMessage(alertBox, `Access to the requested page requires ${roleMismatch.replace(',', ' or ')} credentials. Please sign in with an authorized account below.`, 'error');
+            }
+
+            const hasToken = localStorage.getItem('pharmatrace_token');
+            const hasCookie = document.cookie.includes('token=');
+            if ((hasToken || hasCookie) && !roleMismatch) {
+                const user = await fetchCurrentUser();
+                if (user) {
+                    if (redirect) {
+                        if (redirect.includes('retailer') && user.role !== 'retailer' && user.role !== 'admin') {
+                            showMessage(alertBox, `You are currently logged in as "${user.role}" (${user.email}). To access the Retailer Portal, please sign in with a retailer account below.`, 'error');
+                            return;
+                        }
+                        if (redirect.includes('manufacturer') && user.role !== 'manufacturer' && user.role !== 'admin') {
+                            showMessage(alertBox, `You are currently logged in as "${user.role}" (${user.email}). To access the Manufacturer Portal, please sign in with a manufacturer account below.`, 'error');
+                            return;
+                        }
+                        if (redirect.includes('admin') && user.role !== 'admin') {
+                            showMessage(alertBox, `You are currently logged in as "${user.role}" (${user.email}). Admin console requires administrator privileges.`, 'error');
+                            return;
+                        }
+                    }
+                    redirectByRole(user.role);
+                }
             }
         });
     </script>

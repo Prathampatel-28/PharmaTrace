@@ -18,56 +18,22 @@ async function connectDB() {
         return cached.conn;
     }
 
-    const uri = process.env.MONGODB_URI;
-    const isRemoteAtlas = uri && (uri.startsWith('mongodb+srv://') || (!uri.includes('127.0.0.1') && !uri.includes('localhost')));
+    const localUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/pharmatrace';
 
-    // 1. If remote cloud MongoDB (MongoDB Atlas) is provided:
-    if (isRemoteAtlas) {
-        try {
-            if (!cached.promise) {
-                cached.promise = mongoose.connect(uri.trim(), {
-                    dbName: 'pharmatrace',
-                    serverSelectionTimeoutMS: 5000,
-                    connectTimeoutMS: 8000,
-                    bufferCommands: false
-                }).then(m => m);
-            }
-            cached.conn = await cached.promise;
-            mongoAvailable = true;
-            connectionType = 'MongoDB Atlas (Cloud)';
-            console.log('[Database] Connected to persistent MongoDB Atlas cluster at database "pharmatrace".');
-            return cached.conn;
-        } catch (err) {
-            cached.promise = null;
-            console.error('[Database Connection Error] Failed connecting to remote MongoDB Atlas:', err.message);
-            mongoAvailable = false;
-            connectionType = 'Atlas Error: ' + err.message;
-            return null;
-        }
-    }
-
-    // 2. On Vercel serverless without remote MONGODB_URI:
-    if (process.env.VERCEL) {
-        console.error('[CRITICAL] Running on Vercel without MONGODB_URI. Persistent MongoDB Atlas cluster is required for permanent data storage.');
-        mongoAvailable = false;
-        connectionType = 'Missing MONGODB_URI in Vercel Environment Variables';
-        return null;
-    }
-
-    // 3. Local machine: attempt connecting to local native MongoDB port 27017
+    // 1. Attempt connecting to local MongoDB (port 27017)
     try {
-        await mongoose.connect('mongodb://127.0.0.1:27017/pharmatrace', {
+        await mongoose.connect(localUri, {
             dbName: 'pharmatrace',
-            serverSelectionTimeoutMS: 1500,
+            serverSelectionTimeoutMS: 2000,
             bufferCommands: false
         });
         mongoAvailable = true;
         cached.conn = mongoose;
         connectionType = 'Local Native MongoDB (127.0.0.1:27017)';
-        console.log('[Database] Connected to local MongoDB on port 27017 (pharmatrace).');
+        console.log(`[Database] Connected to local MongoDB at ${localUri}`);
         return cached.conn;
     } catch (err) {
-        // Native instance not running on 27017, start built-in MongoMemoryServer
+        // Native instance not running on 27017, start built-in MongoMemoryServer fallback
     }
 
     // 4. Local machine: start built-in MongoMemoryServer on port 27017 for Compass & local testing

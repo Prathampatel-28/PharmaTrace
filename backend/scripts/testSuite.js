@@ -106,19 +106,27 @@ async function runTestSuite() {
         assert(retLogin.status === 200 && retLogin.body.user.role === 'retailer', '9. Retailer Authentication');
         const retCookie = retLogin.cookie;
 
-        // Test 10: Retailer Update Status to In Stock
-        const updateStatusRes = await request(`/api/retailer/status/${createdMed._id}`, { method: 'PUT' }, {
-            status: 'In Stock',
-            location: 'Apollo Care Pharmacy, Bilaspur Outlet #4',
-            remarks: 'Shipment verified and stocked on Shelf B'
+        // Test 10: Retailer Update Status to Received
+        const updateStatusRes1 = await request(`/api/retailer/status/${createdMed._id}`, { method: 'PUT' }, {
+            status: 'Received',
+            location: 'Apollo Care Pharmacy, Receiving Bay #2',
+            remarks: 'Shipment arrived from manufacturer warehouse and logged'
         }, retCookie);
-        assert(updateStatusRes.status === 200 && updateStatusRes.body.medicine.currentStatus === 'In Stock', '10. Retailer Stock Status Transition (Manufactured -> In Stock)');
+        assert(updateStatusRes1.status === 200 && updateStatusRes1.body.medicine.currentStatus === 'Received', '10. Retailer Stock Status Transition (Manufactured -> Received)');
 
-        // Test 11: Admin Recall Batch
+        // Test 10b: Retailer Update Status to In Stock
+        const updateStatusRes2 = await request(`/api/retailer/status/${createdMed._id}`, { method: 'PUT' }, {
+            status: 'In Stock',
+            location: 'Apollo Care Pharmacy, Dispensary Shelf B',
+            remarks: 'Batch inspected and placed into available inventory'
+        }, retCookie);
+        assert(updateStatusRes2.status === 200 && updateStatusRes2.body.medicine.currentStatus === 'In Stock', '10b. Retailer Stock Status Transition (Received -> In Stock)');
+
+        // Test 11: Manufacturer Self-Recall of Own Batch
         const recallRes = await request(`/api/medicines/${createdMed._id}/recall`, { method: 'POST' }, {
-            reason: 'Test safety recall verification audit'
-        }, adminCookie);
-        assert(recallRes.status === 200 && recallRes.body.medicine.currentStatus === 'Recalled', '11. Regulatory Recall Issued with Reason & Audit Log');
+            reason: 'Manufacturer quality audit: suspected packaging seal defect'
+        }, mfgCookie);
+        assert(recallRes.status === 200 && recallRes.body.medicine.currentStatus === 'Recalled', '11. Manufacturer Self-Recall Initiated by Batch Owner with Reason');
 
         // Test 12: Security Test - Retailer Blocked from Selling Recalled Medicine
         const blockedUpdate = await request(`/api/retailer/status/${createdMed._id}`, { method: 'PUT' }, {
@@ -160,6 +168,12 @@ async function runTestSuite() {
 
         const crossQr = await request(`/api/medicines/${createdMed._id}/qr`, {}, null, mfgBCookie);
         assert(crossQr.status === 403, '19. CROSS-TENANT SECURITY: Manufacturer B blocked with 403 Forbidden from generating Manufacturer A QR code');
+
+        // Test 19b: Cross-Tenant Recall Block (403 Forbidden)
+        const crossRecall = await request(`/api/medicines/${createdMed._id}/recall`, { method: 'POST' }, {
+            reason: 'Unauthorized recall attempt by competitor'
+        }, mfgBCookie);
+        assert(crossRecall.status === 403, '19b. CROSS-TENANT SECURITY: Manufacturer B blocked with 403 Forbidden from recalling Manufacturer A product');
 
         // Test 18: Public Customer Access Remains Unblocked
         const publicQr = await request(`/api/qr/${createdMed.verificationToken}`);
