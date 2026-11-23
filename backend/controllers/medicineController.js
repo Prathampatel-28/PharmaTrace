@@ -69,6 +69,11 @@ exports.createBatch = async (req, res) => {
         };
 
         if (!isMongoConnected()) {
+            if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+                return res.status(503).json({
+                    message: 'Database Unavailable: Cannot register new medicine batches because the production MongoDB database is not connected. Please verify that MONGODB_URI is configured in your deployment settings.'
+                });
+            }
             const fallbackBatch = {
                 _id: 'batch_' + Date.now(),
                 medicineName: medicineName.trim(),

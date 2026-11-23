@@ -21,6 +21,11 @@ exports.getAvailableBatches = async (req, res) => {
 
 exports.updateStatus = async (req, res) => {
     try {
+        if (!isMongoConnected() && (process.env.NODE_ENV === 'production' || process.env.VERCEL)) {
+            return res.status(503).json({
+                message: 'Database Unavailable: Cannot update status because the production MongoDB database is not connected.'
+            });
+        }
         const { status, location, note, remarks } = req.body;
         const allowedStatuses = ['Received', 'In Stock', 'Sold', 'Recalled'];
 

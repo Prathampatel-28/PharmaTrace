@@ -1,11 +1,13 @@
-require('dotenv').config();
-const express = require('express');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
-const { connectDB } = require('./config/db');
+const { connectDB, getDatabaseStatus } = require('./config/db');
 const { autoSeed } = require('./utils/autoSeeder');
 const { apiLimiter } = require('./middleware/rateLimiter');
 
@@ -70,11 +72,20 @@ app.use('/api/notifications', notificationRoutes);
 
 // Health Check
 app.get('/api/health', (_req, res) => {
+    const dbStatus = getDatabaseStatus();
     res.json({
         status: 'ok',
         version: '2.0.0',
         timestamp: new Date().toISOString(),
-        service: 'PharmaTrace Enterprise API'
+        service: 'PharmaTrace Enterprise API',
+        environment: process.env.NODE_ENV || 'development',
+        deployment: process.env.VERCEL ? 'Vercel Serverless' : 'Node.js Local',
+        database: {
+            connected: dbStatus.isConnected,
+            type: dbStatus.connectionType,
+            name: dbStatus.databaseName,
+            uriProvided: dbStatus.mongoUriConfigured
+        }
     });
 });
 

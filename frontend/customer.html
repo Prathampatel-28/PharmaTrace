@@ -3,127 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medicine Verification Portal – PharmaTrace</title>
+    <title>Verify Your Medicine – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
     <!-- html5-qrcode for smartphone camera & webcam scanning -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        .customer-container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 30px 20px 80px 20px;
+        }
+        .hero-verify {
+            text-align: center;
+            padding: 36px 20px 28px 20px;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 16px;
+            border-radius: 9999px;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .hero-title {
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+        .hero-sub {
+            font-size: 1.05rem;
+            color: #64748b;
+            max-width: 620px;
+            margin: 0 auto 28px auto;
+            line-height: 1.6;
+        }
+        .search-box-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+            margin-bottom: 30px;
+        }
+        .search-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .search-row input {
+            flex: 1;
+            min-width: 260px;
+            padding: 14px 18px;
+            font-size: 1rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .search-row input:focus {
+            border-color: #0284c7;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
+        }
+        .search-btn-primary {
+            padding: 14px 26px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 10px;
+        }
+        .scan-camera-btn {
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .scan-camera-btn:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+        /* Verification Status Containers */
+        .result-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.1);
+            margin-bottom: 40px;
+            display: none;
+            border-top: 6px solid #cbd5e1;
+        }
+        .result-state-green {
+            border-top-color: #10b981;
+        }
+        .result-state-yellow {
+            border-top-color: #f59e0b;
+        }
+        .result-state-red {
+            border-top-color: #ef4444;
+        }
+        .result-state-grey {
+            border-top-color: #64748b;
+        }
+        .result-header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        .badge-green { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .badge-yellow { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .badge-red { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .badge-grey { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin: 20px 0;
+        }
+        .result-tile {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .result-tile-lbl {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.04em;
+        }
+        .result-tile-val {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 4px;
+            word-break: break-word;
+        }
+        .timeline-box {
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .timeline-step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .timeline-step:before {
+            content: '';
+            position: absolute;
+            left: 17px;
+            top: 36px;
+            bottom: -16px;
+            width: 2px;
+            background: #e2e8f0;
+        }
+        .timeline-step:last-child:before {
+            display: none;
+        }
+        .timeline-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #e0f2fe;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            z-index: 1;
+        }
+        .timeline-body {
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .feature-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+        }
+        .feature-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: #e0f2fe;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 14px;
+        }
+    </style>
 </head>
-<body>
+<body style="background-color: #f8fafc;">
+    <!-- Simple, Clean Consumer Navbar -->
     <nav class="navbar"></nav>
 
-    <main class="container" style="max-width: 900px; margin-top: 30px;">
-        <header class="page-header">
-            <div>
-                <h1>📱 Medicine Authenticity Verification</h1>
-                <p>Scan packaging QR code or enter batch number to verify pharmaceutical authenticity and inspect full journey</p>
+    <main class="customer-container">
+        <!-- 1. Hero Section -->
+        <header class="hero-verify">
+            <div class="hero-badge">
+                <span>🛡️</span> Official Pharmaceutical Authenticity Registry
             </div>
-            <div>
-                <button class="btn btn-secondary" onclick="openScannerModal()">📷 Scan QR with Camera</button>
-            </div>
+            <h1 class="hero-title">Verify Your Medicine</h1>
+            <p class="hero-sub">
+                Every authentic medicine batch in the PharmaTrace network is registered with cryptographic serialization. Enter your batch number or scan the QR code on the box to confirm authenticity and view the complete supply chain journey.
+            </p>
         </header>
 
-        <!-- Search Card -->
-        <div class="card">
-            <form id="searchForm">
-                <div class="form-group">
-                    <label for="batchInput">Enter Medicine Batch Number or Cryptographic Token</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input id="batchInput" type="text" placeholder="e.g. PCM-2026-001 or DL-7" style="flex: 1;" required>
-                        <button class="btn" type="submit">Verify Medicine Authenticity</button>
-                    </div>
+        <!-- 2. Search & Scan Card -->
+        <div class="search-box-card">
+            <form id="verifySearchForm">
+                <div class="search-row">
+                    <input id="batchNumberInput" type="text" placeholder="Enter batch number (e.g. PCM-2026-001 or DL-7)..." autocomplete="off" required>
+                    <button type="submit" class="btn search-btn-primary">
+                        🔍 Verify Medicine
+                    </button>
+                    <button type="button" class="scan-camera-btn" onclick="openScannerModal()">
+                        📷 Scan Box QR
+                    </button>
                 </div>
             </form>
-            <div id="verifyAlert" class="alert"></div>
+            <div id="searchAlert" class="alert" style="margin-top: 14px;"></div>
         </div>
 
-        <!-- VERIFICATION RESULT CONTAINER -->
-        <div id="resultCard" style="display: none;">
-            <!-- 1. Urgent Recall Alert Banner (if recalled) -->
-            <div id="recallBanner" class="recall-banner" style="display: none;">
-                <div style="font-size: 2.2rem;">⚠️</div>
+        <!-- 3. VERIFICATION RESULT CONTAINER -->
+        <div id="verificationResultCard" class="result-card">
+            <!-- Alert Banner 1: Recalled Medicine -->
+            <div id="recalledAlertBanner" class="alert alert-error" style="display: none; padding: 18px; margin-bottom: 20px; font-size: 1rem;">
+                <div style="font-size: 1.8rem; float: left; margin-right: 14px;">🚨</div>
                 <div>
-                    <h3>URGENT SAFETY RECALL ALERT</h3>
-                    <p id="recallBannerText">This medicine batch has been formally flagged and recalled from the market. DO NOT CONSUME.</p>
+                    <b style="font-size: 1.1rem; display: block;">URGENT SAFETY RECALL ALERT: DO NOT CONSUME</b>
+                    <span id="recalledReasonText">This batch has been officially recalled by the manufacturer or drug regulatory authority. Quarantine immediately.</span>
+                </div>
+                <div style="clear: both;"></div>
+            </div>
+
+            <!-- Alert Banner 2: Expired Medicine -->
+            <div id="expiredAlertBanner" class="alert alert-warning" style="display: none; padding: 16px; margin-bottom: 20px; font-size: 0.95rem;">
+                <b>⏳ EXPIRATION WARNING:</b> This medicine has exceeded its expiry date. It is unsafe to consume.
+            </div>
+
+            <!-- Header Badge & Status State -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <div id="resultStateBadge" class="result-header-badge badge-green">
+                        🛡️ VERIFIED AUTHENTIC BATCH
+                    </div>
+                    <h2 id="resultMedicineName" style="font-size: 1.7rem; color: #0f172a; margin-bottom: 4px;">Medicine Name</h2>
+                    <div id="resultGenericName" style="color: #64748b; font-size: 0.95rem;">Generic Composition</div>
+                </div>
+                <div>
+                    <span id="resultStatusBadge" class="status-badge" style="font-size: 0.92rem; padding: 6px 16px;">Status</span>
                 </div>
             </div>
 
-            <!-- 2. Expiry Warning Banner (if expired) -->
-            <div id="expiryBanner" class="alert alert-warning" style="display: none; padding: 16px; font-weight: 600;">
-                ⏳ EXPIRATION NOTICE: This batch reached its expiration date and must not be dispensed or consumed.
+            <!-- Metadata Tiles Grid -->
+            <div class="result-grid">
+                <div class="result-tile">
+                    <div class="result-tile-lbl">Batch Number</div>
+                    <div id="resultBatch" class="result-tile-val">--</div>
+                </div>
+                <div class="result-tile">
+                    <div class="result-tile-lbl">Licensed Manufacturer</div>
+                    <div id="resultMfg" class="result-tile-val">--</div>
+                </div>
+                <div class="result-tile">
+                    <div class="result-tile-lbl">Manufacturing Date</div>
+                    <div id="resultMfgDate" class="result-tile-val">--</div>
+                </div>
+                <div class="result-tile">
+                    <div class="result-tile-lbl">Expiry Date</div>
+                    <div id="resultExpDate" class="result-tile-val">--</div>
+                </div>
             </div>
 
-            <!-- 3. Authenticity Card -->
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-                    <div>
-                        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 800; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; margin-bottom: 8px;">
-                            🛡️ VERIFIED AUTHENTIC BATCH
-                        </div>
-                        <h2 id="resMedName" style="font-size: 1.6rem; color: #0f172a;">Medicine Name</h2>
-                        <div id="resGeneric" style="color: #64748b; font-size: 0.95rem;">Generic Composition</div>
-                    </div>
-                    <div>
-                        <span id="resStatusBadge" class="status-badge" style="font-size: 0.9rem; padding: 6px 16px;">Status</span>
-                    </div>
-                </div>
+            <!-- Pharmaceutical Details -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-top: 10px; font-size: 0.9rem; line-height: 1.7; color: #334155;">
+                <div><b>Active Composition:</b> <span id="resultComposition">--</span></div>
+                <div><b>Dosage / Administration:</b> <span id="resultDosage">--</span></div>
+                <div><b>Packaging Format:</b> <span id="resultPackaging">--</span></div>
+                <div><b>Storage Instructions:</b> <span id="resultStorage">--</span></div>
+            </div>
 
-                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
-                    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;">
-                        <span style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Batch Number</span>
-                        <div id="resBatch" style="font-size:1.1rem;font-weight:700;color:#0f172a;"></div>
-                    </div>
-                    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;">
-                        <span style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Manufacturer</span>
-                        <div id="resMfg" style="font-size:0.95rem;font-weight:600;color:#0f172a;"></div>
-                    </div>
-                    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;">
-                        <span style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Manufacturing Date</span>
-                        <div id="resMfgDate" style="font-size:0.95rem;font-weight:600;color:#0f172a;"></div>
-                    </div>
-                    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;">
-                        <span style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Expiry Date</span>
-                        <div id="resExpDate" style="font-size:0.95rem;font-weight:600;color:#0f172a;"></div>
-                    </div>
+            <!-- Supply Chain Tracking Timeline -->
+            <div class="timeline-box">
+                <h3 style="font-size: 1.2rem; color: #0f172a; margin-bottom: 16px;">
+                    📍 Verified Supply Chain Journey
+                </h3>
+                <div id="resultTimeline">
+                    <!-- Dynamic timeline steps -->
                 </div>
-
-                <!-- Pharmaceutical Details -->
-                <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 10px; font-size: 0.9rem; line-height: 1.7;">
-                    <div><b>Active Composition:</b> <span id="resComposition"></span></div>
-                    <div><b>Dosage & Administration:</b> <span id="resDosage"></span></div>
-                    <div><b>Packaging Format:</b> <span id="resPackaging"></span></div>
-                    <div><b>Storage Conditions:</b> <span id="resStorage"></span></div>
-                    <div id="resDescRow" style="margin-top: 6px; color: #475569;"><b>Description:</b> <span id="resDesc"></span></div>
-                </div>
-
-                <!-- RETAILER QUICK ACTION (Shown only if logged in as Retailer or Admin) -->
-                <div id="retailerQuickAction" style="display: none; margin-top: 24px; padding: 18px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;">
-                    <h3 style="font-size: 1.05rem; color: #1e40af; margin-bottom: 8px;">🏪 Retailer Quick Action</h3>
-                    <p style="font-size: 0.85rem; color: #3b82f6; margin-bottom: 12px;">You scanned this batch as an authenticated pharmacy staff member. Update its status directly below:</p>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-sm btn-secondary" onclick="quickUpdateStatus('Received')">Mark as Received</button>
-                        <button class="btn btn-sm btn-success" onclick="quickUpdateStatus('In Stock')">Move to In Stock</button>
-                        <button class="btn btn-sm" onclick="quickUpdateStatus('Sold')">Dispense to Customer (Sold)</button>
-                        <button class="btn btn-sm btn-danger" onclick="quickUpdateStatus('Recalled')">Quarantine (Recall)</button>
-                    </div>
-                </div>
-
-                <!-- 4. Chronological Supply Chain Tracking Timeline -->
-                <h3 style="margin: 30px 0 16px 0; color: #0f172a; font-size: 1.2rem;">📍 Supply Chain Journey Timeline</h3>
-                <div id="timelineContainer"></div>
             </div>
         </div>
+
+        <!-- 4. Educational Section: How PharmaTrace Protects Medicine Traceability -->
+        <section id="howItProtectsSection" style="margin-top: 50px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="font-size: 1.6rem; color: #0f172a; font-weight: 800;">
+                    How PharmaTrace Protects Medicine Traceability
+                </h2>
+                <p style="color: #64748b; font-size: 0.95rem; max-width: 580px; margin: 6px auto 0 auto;">
+                    Eliminating counterfeit drugs and ensuring patient safety through uncompromised end-to-end provenance.
+                </p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-card-icon">🔐</div>
+                    <h3 style="font-size: 1.05rem; color: #0f172a; margin-bottom: 8px;">Cryptographic Serialization</h3>
+                    <p style="font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+                        Every pharmaceutical batch receives a unique cryptographic token at the production plant, preventing duplicate cloning or counterfeit packaging.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">🚚</div>
+                    <h3 style="font-size: 1.05rem; color: #0f172a; margin-bottom: 8px;">Custody Checkpoints</h3>
+                    <p style="font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+                        From the manufacturing cleanroom to licensed logistics and pharmacy shelves, every transfer is authenticated with verified location and timestamps.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">⚡</div>
+                    <h3 style="font-size: 1.05rem; color: #0f172a; margin-bottom: 8px;">Instant Safety Recalls</h3>
+                    <p style="font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+                        If a quality defect is identified, manufacturers issue immediate system-wide alerts that warn patients and prevent pharmacies from dispensing recalled batches.
+                    </p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Camera QR Scanner Modal -->
     <div id="scannerModal" class="modal-backdrop">
-        <div class="modal-box" style="max-width: 500px;">
+        <div class="modal-box" style="max-width: 480px;">
             <div class="modal-header">
-                <h3>📷 Live Camera QR Scanner</h3>
+                <h3>📷 Scan Medicine QR Code</h3>
                 <button class="modal-close" onclick="closeScannerModal()">&times;</button>
             </div>
             <div class="modal-body" style="text-align: center;">
-                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 14px;">
-                    Position the packaging QR code within the camera frame to verify.
+                <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 16px;">
+                    Position the packaging QR code within the frame to verify automatically.
                 </p>
                 <div id="qrReader" class="scanner-viewport"></div>
                 <div id="scannerResult" style="margin-top: 14px; font-weight: 700; color: #0284c7;"></div>
@@ -135,117 +388,139 @@
     </div>
 
     <footer>
-        <p>© 2026 PharmaTrace • National Medicine Authenticity Registry</p>
+        <p>© 2026 PharmaTrace • Enterprise Pharmaceutical Traceability Platform</p>
     </footer>
 
     <script src="script.js"></script>
     <script>
-        let currentBatchId = null;
         let html5QrScanner = null;
 
-        async function verifyTokenOrBatch(query) {
-            const alertBox = document.getElementById('verifyAlert');
-            const resultCard = document.getElementById('resultCard');
-            const recallBanner = document.getElementById('recallBanner');
-            const expiryBanner = document.getElementById('expiryBanner');
+        async function verifyMedicine(query) {
+            const alertBox = document.getElementById('searchAlert');
+            const resultCard = document.getElementById('verificationResultCard');
+            const recallAlert = document.getElementById('recalledAlertBanner');
+            const expiredAlert = document.getElementById('expiredAlertBanner');
+            const stateBadge = document.getElementById('resultStateBadge');
 
             alertBox.style.display = 'none';
             resultCard.style.display = 'none';
-            recallBanner.style.display = 'none';
-            expiryBanner.style.display = 'none';
+            recallAlert.style.display = 'none';
+            expiredAlert.style.display = 'none';
+
+            if (!query || !query.trim()) return;
 
             try {
-                const data = await api(`/api/qr/${encodeURIComponent(query)}`);
+                const data = await api(`/api/qr/${encodeURIComponent(query.trim())}`);
                 const m = data.medicine;
-                currentBatchId = m._id;
 
-                document.getElementById('resMedName').textContent = m.medicineName;
-                document.getElementById('resGeneric').textContent = m.genericName || 'Standard Pharmaceutical Formula';
-                document.getElementById('resBatch').textContent = m.batchNumber;
-                document.getElementById('resMfg').textContent = m.manufacturerName;
-                document.getElementById('resMfgDate').textContent = m.manufacturingDate;
-                document.getElementById('resExpDate').textContent = m.expiryDate;
+                // Populate details
+                document.getElementById('resultMedicineName').textContent = m.medicineName;
+                document.getElementById('resultGenericName').textContent = m.genericName || 'Standard Pharmaceutical Formulation';
+                document.getElementById('resultBatch').textContent = m.batchNumber;
+                document.getElementById('resultMfg').textContent = m.manufacturerName || 'Certified Pharmaceutical Manufacturer';
+                document.getElementById('resultMfgDate').textContent = m.manufacturingDate || m.mfgDate || 'Verified';
+                document.getElementById('resultExpDate').textContent = m.expiryDate || m.expDate || 'Verified';
 
-                document.getElementById('resComposition').textContent = m.composition || 'As per pharmacopoeia standards';
-                document.getElementById('resDosage').textContent = m.dosage || 'As directed by physician';
-                document.getElementById('resPackaging').textContent = m.packaging || 'Standard Unit';
-                document.getElementById('resStorage').textContent = m.storageInstructions || 'Store below 25°C';
-                document.getElementById('resDesc').textContent = m.description || 'Verified production batch';
+                document.getElementById('resultComposition').textContent = m.composition || 'Active Pharmaceutical Ingredient as per standards';
+                document.getElementById('resultDosage').textContent = m.dosage || 'As prescribed by licensed medical practitioner';
+                document.getElementById('resultPackaging').textContent = m.packaging || 'Commercial Packaging';
+                document.getElementById('resultStorage').textContent = m.storageInstructions || 'Store in a cool, dry place below 25°C';
 
-                const badge = document.getElementById('resStatusBadge');
-                badge.textContent = m.currentStatus;
-                badge.className = `status-badge ${getStatusBadgeClass(m.currentStatus)}`;
+                const statusBadge = document.getElementById('resultStatusBadge');
+                statusBadge.textContent = m.currentStatus;
+                statusBadge.className = `status-badge ${getStatusBadgeClass(m.currentStatus)}`;
 
-                // Check recall
-                if (m.isRecalled || m.currentStatus === 'Recalled') {
-                    recallBanner.style.display = 'flex';
-                    document.getElementById('recallBannerText').textContent = m.recallReason ? `Reason: ${m.recallReason}` : 'Batch formally recalled from market by regulatory notice.';
-                }
+                // Reset visual state classes
+                resultCard.className = 'result-card';
 
-                // Check expiry
-                if (m.isExpired) {
-                    expiryBanner.style.display = 'block';
-                }
+                // Evaluate 4 visual color states (Green, Yellow, Red, Grey)
+                const isRecalled = m.isRecalled || m.currentStatus === 'Recalled';
+                const isExpired = m.isExpired || (m.expiryDate && new Date(m.expiryDate) < new Date());
 
-                // Retailer actions
-                if (data.retailerActionsAvailable) {
-                    document.getElementById('retailerQuickAction').style.display = 'block';
+                if (isRecalled) {
+                    // RED STATE: Recalled
+                    resultCard.classList.add('result-state-red');
+                    stateBadge.className = 'result-header-badge badge-red';
+                    stateBadge.innerHTML = '⚠️ SAFETY RECALL NOTICE';
+                    recallAlert.style.display = 'block';
+                    document.getElementById('recalledReasonText').textContent = m.recallReason ? `Regulatory Reason: ${m.recallReason}` : 'Batch formally flagged and recalled from the market. DO NOT CONSUME.';
+                } else if (isExpired) {
+                    // RED STATE: Expired
+                    resultCard.classList.add('result-state-red');
+                    stateBadge.className = 'result-header-badge badge-red';
+                    stateBadge.innerHTML = '⏳ EXPIRED PRODUCT';
+                    expiredAlert.style.display = 'block';
+                } else if (m.currentStatus === 'Manufactured' || m.currentStatus === 'Received') {
+                    // YELLOW STATE: In Transit / Processing
+                    resultCard.classList.add('result-state-yellow');
+                    stateBadge.className = 'result-header-badge badge-yellow';
+                    stateBadge.innerHTML = '🚚 IN SUPPLY CHAIN TRANSIT';
                 } else {
-                    document.getElementById('retailerQuickAction').style.display = 'none';
+                    // GREEN STATE: Authentic & Verified
+                    resultCard.classList.add('result-state-green');
+                    stateBadge.className = 'result-header-badge badge-green';
+                    stateBadge.innerHTML = '🛡️ VERIFIED AUTHENTIC BATCH';
                 }
 
                 // Render Timeline
-                const timeline = document.getElementById('timelineContainer');
-                timeline.innerHTML = '';
+                const timelineContainer = document.getElementById('resultTimeline');
+                timelineContainer.innerHTML = '';
                 const checkpoints = (m.checkpoints || []).slice().reverse();
 
-                checkpoints.forEach(cp => {
-                    const card = document.createElement('div');
-                    card.className = 'batch-card';
-                    card.innerHTML = `
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <strong>${cp.stage} — ${cp.status}</strong>
-                            <span class="${getStatusBadgeClass(cp.status)}">${cp.status}</span>
+                if (checkpoints.length === 0) {
+                    timelineContainer.innerHTML = `
+                        <div class="timeline-step">
+                            <div class="timeline-dot">🏭</div>
+                            <div class="timeline-body">
+                                <b>Production Initialized</b>
+                                <p style="font-size:0.85rem;color:#64748b;margin:4px 0 0 0;">Batch registered and cryptographically verified.</p>
+                            </div>
                         </div>
-                        <p style="color:#64748b;font-size:0.85rem;margin:4px 0;">📍 ${cp.location || 'Location Not Specified'} | ⏱️ ${new Date(cp.timestamp).toLocaleString()}</p>
-                        ${cp.description ? `<p style="font-size:0.88rem;color:#334155;">${cp.description}</p>` : ''}
                     `;
-                    timeline.appendChild(card);
-                });
+                } else {
+                    checkpoints.forEach((cp, idx) => {
+                        let icon = '📦';
+                        if (cp.stage === 'Manufacturer' || cp.status === 'Manufactured') icon = '🏭';
+                        else if (cp.status === 'Received') icon = '🚚';
+                        else if (cp.status === 'In Stock') icon = '🏪';
+                        else if (cp.status === 'Sold') icon = '🏷️';
+                        else if (cp.status === 'Recalled') icon = '⚠️';
+
+                        const step = document.createElement('div');
+                        step.className = 'timeline-step';
+                        step.innerHTML = `
+                            <div class="timeline-dot">${icon}</div>
+                            <div class="timeline-body">
+                                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                                    <b>${cp.stage || 'Stage'}: ${cp.status}</b>
+                                    <span class="${getStatusBadgeClass(cp.status)}">${cp.status}</span>
+                                </div>
+                                <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">
+                                    📍 ${cp.location || 'Verified Facility'} • ⏱️ ${new Date(cp.timestamp).toLocaleString()}
+                                </div>
+                                ${cp.description ? `<p style="font-size:0.86rem;color:#334155;margin-top:6px;">${cp.description}</p>` : ''}
+                            </div>
+                        `;
+                        timelineContainer.appendChild(step);
+                    });
+                }
 
                 resultCard.style.display = 'block';
                 resultCard.scrollIntoView({ behavior: 'smooth' });
 
             } catch (err) {
-                showMessage(alertBox, err.message, 'error');
+                // GREY / RED STATE: Unregistered or invalid
+                resultCard.className = 'result-card result-state-red';
+                stateBadge.className = 'result-header-badge badge-red';
+                stateBadge.innerHTML = '❌ UNVERIFIED / COUNTERFEIT WARNING';
+                showMessage(alertBox, `Verification Notice: "${query}" was NOT found in the verified pharmaceutical registry. Warning: Unverified or counterfeit product.`, 'error');
             }
         }
 
-        async function quickUpdateStatus(status) {
-            if (!currentBatchId) return;
-            const note = prompt(`Enter update note for setting status to "${status}":`, `Stock status updated to ${status}`);
-            if (note === null) return;
-            try {
-                await api(`/api/retailer/status/${currentBatchId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status,
-                        note,
-                        location: 'Point of Care / Pharmacy'
-                    })
-                });
-                alert('Status updated successfully!');
-                const batchNum = document.getElementById('resBatch').textContent;
-                verifyTokenOrBatch(batchNum);
-            } catch (err) {
-                alert('Update failed: ' + err.message);
-            }
-        }
-
-        document.getElementById('searchForm').addEventListener('submit', (e) => {
+        document.getElementById('verifySearchForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            const val = document.getElementById('batchInput').value.trim();
-            if (val) verifyTokenOrBatch(val);
+            const val = document.getElementById('batchNumberInput').value.trim();
+            if (val) verifyMedicine(val);
         });
 
         // Live Camera Scanner
@@ -265,7 +540,7 @@
                 },
                 () => {}
             ).catch(err => {
-                document.getElementById('scannerResult').textContent = 'Camera error: ' + err;
+                document.getElementById('scannerResult').textContent = 'Camera initialization: ' + err;
             });
         }
 
@@ -287,17 +562,17 @@
             } else if (urlOrToken.includes('id=')) {
                 token = new URL(urlOrToken).searchParams.get('id');
             }
-            document.getElementById('batchInput').value = token;
-            verifyTokenOrBatch(token);
+            document.getElementById('batchNumberInput').value = token;
+            verifyMedicine(token);
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             renderNavbar('customer');
             const params = new URLSearchParams(window.location.search);
             const token = params.get('token') || params.get('id');
             if (token) {
-                document.getElementById('batchInput').value = token;
-                verifyTokenOrBatch(token);
+                document.getElementById('batchNumberInput').value = token;
+                verifyMedicine(token);
             }
         });
     </script>

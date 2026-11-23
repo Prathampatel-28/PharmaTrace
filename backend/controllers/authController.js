@@ -86,6 +86,11 @@ exports.register = async (req, res) => {
                 req
             }).catch(() => {});
         } else {
+            if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+                return res.status(503).json({
+                    message: 'Database Unavailable: Cannot register new accounts because the production MongoDB database is not connected. Please verify that MONGODB_URI is configured in your deployment settings.'
+                });
+            }
             const existing = getFallbackUserByEmail(normalizedEmail);
             if (existing) {
                 return res.status(409).json({ message: 'An account with this email address already exists.' });

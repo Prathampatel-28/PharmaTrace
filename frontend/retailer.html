@@ -117,10 +117,18 @@
                 </div>
             </div>
 
-            <!-- Filter & Search Toolbar -->
+            <!-- Filter & Search Toolbar with Quick Stage Tabs -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                <button type="button" class="btn btn-sm" id="tabBtnAll" onclick="selectStockTab('ALL', this)">All Stock (<span id="countAll">0</span>)</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="tabBtnRecv" onclick="selectStockTab('Received', this)">Received (<span id="countRecv">0</span>)</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="tabBtnStock" onclick="selectStockTab('In Stock', this)">In Stock (<span id="countStock">0</span>)</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="tabBtnSold" onclick="selectStockTab('Sold', this)">Sold (<span id="countSold">0</span>)</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="tabBtnRecall" onclick="selectStockTab('Recalled', this)" style="color:#ef4444;">Recalled (<span id="countRecall">0</span>)</button>
+            </div>
+
             <div class="filter-toolbar" style="margin-bottom: 14px; background: #f8fafc;">
                 <input id="stockSearchInput" class="filter-search-input" type="text" placeholder="🔍 Search batch number, medicine name, or manufacturer..." oninput="applyStockFilters()">
-                <select id="stockStatusFilter" class="filter-select" onchange="applyStockFilters()">
+                <select id="stockStatusFilter" class="filter-select" onchange="syncStockFilterDropdown(this.value)">
                     <option value="ALL">All Stages</option>
                     <option value="Received">Received</option>
                     <option value="In Stock">In Stock</option>
@@ -191,6 +199,12 @@
                 document.getElementById('retSoldCount').textContent = availableBatches.filter(b => b.currentStatus === 'Sold').length;
                 document.getElementById('retRecalledCount').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled').length;
 
+                if (document.getElementById('countAll')) document.getElementById('countAll').textContent = availableBatches.length;
+                if (document.getElementById('countRecv')) document.getElementById('countRecv').textContent = availableBatches.filter(b => b.currentStatus === 'Received').length;
+                if (document.getElementById('countStock')) document.getElementById('countStock').textContent = availableBatches.filter(b => b.currentStatus === 'In Stock').length;
+                if (document.getElementById('countSold')) document.getElementById('countSold').textContent = availableBatches.filter(b => b.currentStatus === 'Sold').length;
+                if (document.getElementById('countRecall')) document.getElementById('countRecall').textContent = availableBatches.filter(b => b.currentStatus === 'Recalled').length;
+
                 select.innerHTML = '<option value="">-- Choose a medicine batch --</option>';
                 availableBatches.forEach(b => {
                     const opt = document.createElement('option');
@@ -256,6 +270,31 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function selectStockTab(status, btn) {
+            document.querySelectorAll('[id^="tabBtn"]').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-secondary');
+            });
+            if (btn) {
+                btn.classList.remove('btn-secondary');
+            }
+            const sel = document.getElementById('stockStatusFilter');
+            if (sel) sel.value = status;
+            applyStockFilters();
+        }
+
+        function syncStockFilterDropdown(val) {
+            document.querySelectorAll('[id^="tabBtn"]').forEach(b => {
+                b.classList.add('btn-secondary');
+            });
+            if (val === 'ALL') document.getElementById('tabBtnAll')?.classList.remove('btn-secondary');
+            else if (val === 'Received') document.getElementById('tabBtnRecv')?.classList.remove('btn-secondary');
+            else if (val === 'In Stock') document.getElementById('tabBtnStock')?.classList.remove('btn-secondary');
+            else if (val === 'Sold') document.getElementById('tabBtnSold')?.classList.remove('btn-secondary');
+            else if (val === 'Recalled') document.getElementById('tabBtnRecall')?.classList.remove('btn-secondary');
+            applyStockFilters();
         }
 
         function selectBatchForUpdate(id) {

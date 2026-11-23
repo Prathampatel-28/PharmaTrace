@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Disable operation buffering so queries never hang if database is offline or unconfigured
+// Disable operation buffering so queries fail immediately if database is offline instead of hanging
 mongoose.set('bufferCommands', false);
 
 let cached = global.mongoose;
@@ -10,6 +10,7 @@ if (!cached) {
 
 let mongoServer = null;
 let mongoAvailable = false;
+let connectionType = 'Disconnected';
 
 async function connectDB() {
     if (cached.conn && mongoose.connection.readyState === 1) {
@@ -18,52 +19,58 @@ async function connectDB() {
     }
 
     const uri = process.env.MONGODB_URI;
+    const isRemoteAtlas = uri && (uri.startsWith('mongodb+srv://') || (!uri.includes('127.0.0.1') && !uri.includes('localhost')));
 
-    // 1. If explicit MONGODB_URI is provided (e.g. MongoDB Atlas on Vercel or locally)
-    if (uri) {
+    // 1. If remote cloud MongoDB (MongoDB Atlas) is provided:
+    if (isRemoteAtlas) {
         try {
             if (!cached.promise) {
-                cached.promise = mongoose.connect(uri, {
+                cached.promise = mongoose.connect(uri.trim(), {
+                    dbName: 'pharmatrace',
                     serverSelectionTimeoutMS: 5000,
-                    connectTimeoutMS: 10000,
+                    connectTimeoutMS: 8000,
                     bufferCommands: false
                 }).then(m => m);
             }
             cached.conn = await cached.promise;
             mongoAvailable = true;
-            console.log('Connected to remote MongoDB successfully.');
+            connectionType = 'MongoDB Atlas (Cloud)';
+            console.log('[Database] Connected to persistent MongoDB Atlas cluster at database "pharmatrace".');
             return cached.conn;
         } catch (err) {
             cached.promise = null;
-            console.error('Remote MongoDB connection error:', err.message);
+            console.error('[Database Connection Error] Failed connecting to remote MongoDB Atlas:', err.message);
             mongoAvailable = false;
+            connectionType = 'Atlas Error: ' + err.message;
             return null;
         }
     }
 
-    // 2. On Vercel serverless without MONGODB_URI:
-    // Standalone mongod binaries cannot run inside serverless containers.
+    // 2. On Vercel serverless without remote MONGODB_URI:
     if (process.env.VERCEL) {
-        console.warn('Running on Vercel serverless without MONGODB_URI. Operating with resilient dataset fallback.');
+        console.error('[CRITICAL] Running on Vercel without MONGODB_URI. Persistent MongoDB Atlas cluster is required for permanent data storage.');
         mongoAvailable = false;
+        connectionType = 'Missing MONGODB_URI in Vercel Environment Variables';
         return null;
     }
 
-    // 3. Local machine: attempt connecting to local MongoDB port 27017
+    // 3. Local machine: attempt connecting to local native MongoDB port 27017
     try {
         await mongoose.connect('mongodb://127.0.0.1:27017/pharmatrace', {
+            dbName: 'pharmatrace',
             serverSelectionTimeoutMS: 1500,
             bufferCommands: false
         });
         mongoAvailable = true;
         cached.conn = mongoose;
-        console.log('Connected to local MongoDB on port 27017.');
+        connectionType = 'Local Native MongoDB (127.0.0.1:27017)';
+        console.log('[Database] Connected to local MongoDB on port 27017 (pharmatrace).');
         return cached.conn;
     } catch (err) {
         // Native instance not running on 27017, start built-in MongoMemoryServer
     }
 
-    // 4. Local machine: start built-in MongoMemoryServer on port 27017 for Compass
+    // 4. Local machine: start built-in MongoMemoryServer on port 27017 for Compass & local testing
     try {
         const { MongoMemoryServer } = require('mongodb-memory-server');
         if (!mongoServer) {
@@ -75,14 +82,16 @@ async function connectDB() {
             });
         }
         const memoryUri = 'mongodb://127.0.0.1:27017/pharmatrace';
-        await mongoose.connect(memoryUri, { bufferCommands: false });
+        await mongoose.connect(memoryUri, { dbName: 'pharmatrace', bufferCommands: false });
         mongoAvailable = true;
         cached.conn = mongoose;
-        console.log('MongoDB server running at mongodb://127.0.0.1:27017/pharmatrace');
+        connectionType = 'Local Development MongoDB (127.0.0.1:27017)';
+        console.log('[Database] Local MongoDB server running at mongodb://127.0.0.1:27017/pharmatrace');
         return cached.conn;
     } catch (error) {
-        console.error('Failed to start MongoDB server on port 27017:', error.message);
+        console.error('[Database] Failed to start local MongoDB on port 27017:', error.message);
         mongoAvailable = false;
+        connectionType = 'Local Failed: ' + error.message;
     }
 
     return null;
@@ -92,4 +101,14 @@ function isMongoConnected() {
     return mongoAvailable && mongoose.connection.readyState === 1;
 }
 
-module.exports = { connectDB, isMongoConnected };
+function getDatabaseStatus() {
+    return {
+        isConnected: isMongoConnected(),
+        connectionType,
+        databaseName: 'pharmatrace',
+        readyState: mongoose.connection.readyState,
+        mongoUriConfigured: Boolean(process.env.MONGODB_URI)
+    };
+}
+
+module.exports = { connectDB, isMongoConnected, getDatabaseStatus };

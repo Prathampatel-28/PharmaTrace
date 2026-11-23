@@ -113,9 +113,63 @@ async function renderNavbar(activePage = '') {
 
     const user = await fetchCurrentUser();
 
-    let adminLink = '';
-    if (user && user.role === 'admin') {
-        adminLink = `<li><a class="${activePage === 'admin' ? 'active' : ''}" href="admin.html">Admin Panel</a></li>`;
+    // Role-specific brand and role-isolated navigation links (no confusing cross-role links)
+    let brandHtml = '<a class="nav-brand" href="customer.html">💊 PharmaTrace</a>';
+    let navLinksHtml = '';
+
+    if (activePage === 'manufacturer' || (user && user.role === 'manufacturer' && activePage !== 'customer')) {
+        brandHtml = `
+            <a class="nav-brand" href="manufacturer.html">
+                <span>💊 PharmaTrace</span>
+                <span class="user-badge role-manufacturer" style="font-size:0.7rem;margin-left:6px;">Manufacturer Portal</span>
+            </a>
+        `;
+        navLinksHtml = `
+            <li><a class="active" href="manufacturer.html">🏭 My Production</a></li>
+            <li><a href="#" onclick="if(window.showMfgSection){window.showMfgSection('products');}return false;">📦 My Products</a></li>
+            <li><a href="#" onclick="if(window.showMfgSection){window.showMfgSection('register');}return false;">➕ Register Batch</a></li>
+            <li><a href="#" onclick="if(window.showMfgSection){window.showMfgSection('qrManager');}return false;">📱 QR Labels</a></li>
+        `;
+    } else if (activePage === 'retailer' || (user && user.role === 'retailer' && activePage !== 'customer')) {
+        brandHtml = `
+            <a class="nav-brand" href="retailer.html">
+                <span>💊 PharmaTrace</span>
+                <span class="user-badge role-retailer" style="font-size:0.7rem;margin-left:6px;">Pharmacy & Retailer</span>
+            </a>
+        `;
+        navLinksHtml = `
+            <li><a class="active" href="retailer.html">🏪 Stock Management</a></li>
+            <li><a href="#" onclick="if(window.openScannerModal){window.openScannerModal();}return false;">📷 Scan QR</a></li>
+            <li><a href="customer.html">🔍 Public Verify</a></li>
+        `;
+    } else if (activePage === 'customer') {
+        brandHtml = `
+            <a class="nav-brand" href="customer.html">
+                <span>💊 PharmaTrace</span>
+                <span style="font-size:0.72rem;font-weight:600;color:#94a3b8;margin-left:4px;">Authenticity Registry</span>
+            </a>
+        `;
+        navLinksHtml = `
+            <li><a class="active" href="customer.html">🔍 Verify Medicine</a></li>
+            <li><a href="#howItProtectsSection">🛡️ How It Protects You</a></li>
+        `;
+    } else if (activePage === 'admin' || (user && user.role === 'admin')) {
+        brandHtml = `
+            <a class="nav-brand" href="admin.html">
+                <span>💊 PharmaTrace</span>
+                <span class="user-badge role-admin" style="font-size:0.7rem;margin-left:6px;">Admin Console</span>
+            </a>
+        `;
+        navLinksHtml = `
+            <li><a class="active" href="admin.html">Admin Dashboard</a></li>
+            <li><a href="ledger.html">Public Ledger</a></li>
+        `;
+    } else {
+        brandHtml = `<a class="nav-brand" href="customer.html">💊 PharmaTrace</a>`;
+        navLinksHtml = `
+            <li><a href="customer.html">🔍 Verify Medicine</a></li>
+            <li><a href="ledger.html">Public Ledger</a></li>
+        `;
     }
 
     let authSection = '';
@@ -155,20 +209,15 @@ async function renderNavbar(activePage = '') {
         `;
     } else {
         authSection = `
-            <a href="login.html" class="btn btn-sm">Sign In / Register →</a>
+            <a href="login.html" class="btn btn-sm btn-secondary">🔐 Staff Sign In →</a>
         `;
     }
 
     nav.innerHTML = `
         <div class="nav-container">
-            <a class="nav-brand" href="index.html">💊 PharmaTrace</a>
+            ${brandHtml}
             <ul class="nav-links">
-                <li><a class="${activePage === 'home' ? 'active' : ''}" href="index.html">Home</a></li>
-                <li><a class="${activePage === 'manufacturer' ? 'active' : ''}" href="manufacturer.html">Manufacturer</a></li>
-                <li><a class="${activePage === 'retailer' ? 'active' : ''}" href="retailer.html">Retailer</a></li>
-                <li><a class="${activePage === 'customer' ? 'active' : ''}" href="customer.html">Verify</a></li>
-                <li><a class="${activePage === 'ledger' ? 'active' : ''}" href="ledger.html">Ledger</a></li>
-                ${adminLink}
+                ${navLinksHtml}
             </ul>
             <div class="nav-auth">
                 ${authSection}
