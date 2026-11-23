@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 10px;" class="retailer-grid">
+        <div class="retailer-grid">
             <!-- 1. STATUS UPDATE FORM -->
             <div class="card">
                 <div class="card-title">Update Medicine Stage</div>
@@ -81,7 +81,7 @@
                         <input id="note" type="text" placeholder="e.g. Temperature checked (21°C), placed in A-Row shelf" required>
                     </div>
 
-                    <button class="btn btn-secondary btn-block" type="submit">Log Status Change in Blockchain Ledger</button>
+                    <button class="btn btn-block" type="submit">Log Status Change in Blockchain Ledger</button>
                 </form>
             </div>
 
@@ -94,9 +94,9 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th>Batch</th>
-                                <th>Status</th>
+                                <th style="width: 90px;">Time</th>
+                                <th style="width: 140px;">Batch</th>
+                                <th style="width: 120px;">Status</th>
                                 <th>Location</th>
                             </tr>
                         </thead>
@@ -141,12 +141,12 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Batch No.</th>
+                            <th style="width: 140px;">Batch No.</th>
                             <th>Medicine Name</th>
                             <th>Manufacturer</th>
-                            <th>Expiry Date</th>
-                            <th>Current Status</th>
-                            <th>Action</th>
+                            <th style="width: 130px;">Expiry Date</th>
+                            <th style="width: 130px;">Current Status</th>
+                            <th style="width: 160px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="stockTableBody">
@@ -224,7 +224,7 @@
                     historyBody.innerHTML = hist.map(h => `
                         <tr>
                             <td>${new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                            <td><b>${h.batchNumber}</b></td>
+                            <td><span class="batch-pill">${h.batchNumber}</span></td>
                             <td><span class="${getStatusBadgeClass(h.newStatus)}">${h.newStatus}</span></td>
                             <td>${h.location || '—'}</td>
                         </tr>
@@ -259,14 +259,16 @@
 
             stockBody.innerHTML = list.map(b => `
                 <tr>
-                    <td><b>${b.batchNumber}</b></td>
-                    <td>${b.medicineName}</td>
+                    <td><span class="batch-pill">${b.batchNumber}</span></td>
+                    <td><b>${b.medicineName}</b></td>
                     <td>${b.manufacturerName || 'Authorized Manufacturer'}</td>
                     <td>${b.expiryDate || b.expDate}</td>
                     <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
                     <td>
-                        <button class="btn-sm btn-secondary" onclick="selectBatchForUpdate('${b._id}')">Select</button>
-                        <a href="customer.html?token=${b.batchNumber}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-sm btn-secondary" onclick="selectBatchForUpdate('${b._id}')">Select</button>
+                            <a href="customer.html?token=${b.batchNumber}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
+                        </div>
                     </td>
                 </tr>
             `).join('');

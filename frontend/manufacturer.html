@@ -137,13 +137,13 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Batch No.</th>
+                                    <th style="width: 140px;">Batch No.</th>
                                     <th>Medicine Name</th>
-                                    <th>Quantity</th>
-                                    <th>Mfg Date</th>
-                                    <th>Expiry Date</th>
-                                    <th>Current Status</th>
-                                    <th>Label & QR</th>
+                                    <th style="width: 100px;">Quantity</th>
+                                    <th style="width: 120px;">Mfg Date</th>
+                                    <th style="width: 120px;">Expiry Date</th>
+                                    <th style="width: 130px;">Current Status</th>
+                                    <th style="width: 140px;">Label & QR</th>
                                 </tr>
                             </thead>
                             <tbody id="recentBatchesBody">
@@ -197,13 +197,13 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Batch No.</th>
+                                    <th style="width: 140px;">Batch No.</th>
                                     <th>Medicine Name & Generic</th>
-                                    <th>Dosage / Packaging</th>
-                                    <th>Quantity</th>
-                                    <th>Mfg / Exp Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th style="width: 150px;">Dosage / Packaging</th>
+                                    <th style="width: 100px;">Quantity</th>
+                                    <th style="width: 150px;">Mfg / Exp Date</th>
+                                    <th style="width: 130px;">Status</th>
+                                    <th style="width: 160px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="myBatchesTableBody">
@@ -443,9 +443,9 @@
                 } else {
                     recentBody.innerHTML = recentList.map(b => `
                         <tr>
-                            <td><b>${b.batchNumber}</b></td>
-                            <td>${b.medicineName}</td>
-                            <td>${b.quantity || 1000}</td>
+                            <td><span class="batch-pill">${b.batchNumber}</span></td>
+                            <td><b>${b.medicineName}</b></td>
+                            <td>${Number(b.quantity || 1000).toLocaleString()}</td>
                             <td>${b.manufacturingDate || b.mfgDate}</td>
                             <td>${b.expiryDate || b.expDate}</td>
                             <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
@@ -506,7 +506,7 @@
 
             tbody.innerHTML = filtered.map(b => `
                 <tr>
-                    <td><b>${b.batchNumber}</b></td>
+                    <td><span class="batch-pill">${b.batchNumber}</span></td>
                     <td>
                         <span style="font-weight: 600; color: #0f172a;">${b.medicineName}</span>
                         ${b.genericName ? `<div style="color: #64748b; font-size: 0.8rem;">${b.genericName}</div>` : ''}
