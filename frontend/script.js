@@ -171,6 +171,9 @@ async function renderNavbar(activePage = '') {
             <li><a class="active" href="admin.html">Admin Dashboard</a></li>
             <li><a href="ledger.html">Public Ledger</a></li>
         `;
+    } else if (activePage === 'login') {
+        brandHtml = `<a class="nav-brand" href="login.html"><span>💊 PharmaTrace</span></a>`;
+        navLinksHtml = '';
     } else {
         brandHtml = `<a class="nav-brand" href="customer.html">💊 PharmaTrace</a>`;
         navLinksHtml = `

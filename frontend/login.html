@@ -503,7 +503,7 @@
         });
 
         document.addEventListener('DOMContentLoaded', async () => {
-            renderNavbar();
+            renderNavbar('login');
             const user = await fetchCurrentUser();
             // If already logged in, redirect straight to their dashboard
             if (user) {
