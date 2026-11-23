@@ -46,6 +46,23 @@ async function autoSeed() {
             console.log(`[AutoSeed] Created Manufacturer account: ${mfgEmail}`);
         }
 
+        const mfg2Email = 'biocare@manufacturer.com';
+        let manufacturer2 = await User.findOne({ email: mfg2Email });
+        if (!manufacturer2) {
+            const hash = await bcrypt.hash('Password@123', 10);
+            manufacturer2 = await User.create({
+                name: 'BioCare Laboratories Ltd',
+                email: mfg2Email,
+                passwordHash: hash,
+                role: 'manufacturer',
+                organization: 'BioCare Research & Formulations Hub',
+                licenseNumber: 'MFG/FDA/2026/0412',
+                phone: '+91 97654 32109',
+                accountStatus: 'active'
+            });
+            console.log(`[AutoSeed] Created Manufacturer B account: ${mfg2Email}`);
+        }
+
         const retEmail = 'retailer@apollocare.com';
         let retailer = await User.findOne({ email: retEmail });
         if (!retailer) {
@@ -224,6 +241,59 @@ async function autoSeed() {
                 });
             }
             console.log('[AutoSeed] Seeded verified pharmaceutical batches and checkpoints.');
+        }
+
+        const bioCareMed = await Medicine.findOne({ batchNumber: 'AMX-2026-01' });
+        if (!bioCareMed && manufacturer2) {
+            const bMed = await Medicine.create({
+                medicineName: 'Amoxicillin 500mg (Antibiotic)',
+                genericName: 'Amoxicillin Trihydrate IP 500mg',
+                batchNumber: 'AMX-2026-01',
+                manufacturingDate: '2026-11-01',
+                expiryDate: '2028-11-01',
+                mfgDate: '2026-11-01',
+                expDate: '2028-11-01',
+                licenseNumber: 'MFG/FDA/2026/0412',
+                composition: 'Amoxicillin Trihydrate equivalent to Amoxicillin 500mg',
+                dosage: 'Oral Capsule, 1 capsule every 8 hours',
+                packaging: 'Blister Strip of 10 Capsules',
+                quantity: 4000,
+                currentStatus: 'Manufactured',
+                verificationToken: 'amx01010101010101010101010101010',
+                manufacturerId: manufacturer2._id,
+                manufacturerName: manufacturer2.organization,
+                checkpoints: [
+                    {
+                        stage: 'Manufacturer',
+                        status: 'Manufactured',
+                        location: 'BioCare Research & Formulations Hub, Gujarat',
+                        description: 'Antibiotic batch encapsulated and laboratory tested',
+                        updatedBy: manufacturer2._id,
+                        updaterName: manufacturer2.name,
+                        timestamp: new Date('2026-11-01T10:00:00Z')
+                    }
+                ]
+            });
+
+            await QRVerification.create({
+                medicineId: bMed._id,
+                batchNumber: bMed.batchNumber,
+                verificationToken: bMed.verificationToken,
+                scanCount: 2
+            }).catch(() => {});
+
+            await TrackingHistory.create({
+                medicineId: bMed._id,
+                batchNumber: bMed.batchNumber,
+                previousStatus: 'None',
+                newStatus: 'Manufactured',
+                updatedBy: manufacturer2._id,
+                updaterName: manufacturer2.name,
+                userRole: 'manufacturer',
+                remarks: 'BioCare initial verified batch release',
+                location: manufacturer2.organization
+            }).catch(() => {});
+            console.log('[AutoSeed] Seeded BioCare Laboratories batch AMX-2026-01.');
         }
     } catch (err) {
         console.error('AutoSeed error:', err.message);

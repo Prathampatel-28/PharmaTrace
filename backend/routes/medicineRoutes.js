@@ -5,15 +5,16 @@ const retailerController = require('../controllers/retailerController');
 const { authenticate, optionalAuth } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 
-// 1. Public endpoints
+// 1. Fixed subpath endpoints
 router.get('/', medicineController.getAllMedicines);
 router.get('/batch/:batchNumber', medicineController.getBatchByNumber);
-router.get('/:id/qr', medicineController.getQrCode);
-router.get('/:id', medicineController.getBatchById);
-
-// 2. Manufacturer / Admin endpoints
-router.post('/', authenticate, authorize('manufacturer', 'admin'), medicineController.createBatch);
 router.get('/my/batches', authenticate, authorize('manufacturer', 'admin'), medicineController.getMyBatches);
+router.get('/my-batches', authenticate, authorize('manufacturer', 'admin'), medicineController.getMyBatches);
+
+// 2. Specific batch actions & parameterized routes
+router.post('/', authenticate, authorize('manufacturer', 'admin'), medicineController.createBatch);
+router.get('/:id/qr', optionalAuth, medicineController.getQrCode);
+router.get('/:id', optionalAuth, medicineController.getBatchById);
 router.put('/:id', authenticate, authorize('manufacturer', 'admin'), medicineController.updateBatch);
 router.post('/:id/recall', authenticate, authorize('manufacturer', 'admin'), medicineController.recallBatch);
 

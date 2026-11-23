@@ -160,7 +160,22 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const user = await fetchCurrentUser();
+
+            // When someone opens PharmaTrace: If logged in, go directly to their role portal; if not, go to login page
+            if (user) {
+                if (user.role === 'admin') window.location.href = 'admin.html';
+                else if (user.role === 'manufacturer') window.location.href = 'manufacturer.html';
+                else if (user.role === 'retailer') window.location.href = 'retailer.html';
+                else window.location.href = 'customer.html';
+                return;
+            } else if (!params.has('explore') && !params.has('batch')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
             renderNavbar('home');
             loadHomeStats();
         });

@@ -110,8 +110,24 @@
 
         <!-- 3. AVAILABLE PHARMACEUTICAL STOCK TABLE -->
         <div class="card" style="margin-top: 24px;">
-            <div class="card-title">Pharmaceutical Stock Overview</div>
-            <div class="card-subtitle">Verified batches in distribution and circulation.</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+                <div>
+                    <div class="card-title">Pharmaceutical Stock Management</div>
+                    <div class="card-subtitle">Verified batches in distribution and circulation. Filter by supply stage or search by batch number.</div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="filter-toolbar" style="margin-bottom: 14px; background: #f8fafc;">
+                <input id="stockSearchInput" class="filter-search-input" type="text" placeholder="🔍 Search batch number, medicine name, or manufacturer..." oninput="applyStockFilters()">
+                <select id="stockStatusFilter" class="filter-select" onchange="applyStockFilters()">
+                    <option value="ALL">All Stages</option>
+                    <option value="Received">Received</option>
+                    <option value="In Stock">In Stock</option>
+                    <option value="Sold">Sold</option>
+                    <option value="Recalled">Recalled</option>
+                </select>
+            </div>
 
             <div class="table-container">
                 <table class="data-table">
@@ -184,19 +200,7 @@
                     select.appendChild(opt);
                 });
 
-                stockBody.innerHTML = availableBatches.map(b => `
-                    <tr>
-                        <td><b>${b.batchNumber}</b></td>
-                        <td>${b.medicineName}</td>
-                        <td>${b.manufacturerName}</td>
-                        <td>${b.expiryDate}</td>
-                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
-                        <td>
-                            <button class="btn-sm btn-secondary" onclick="selectBatchForUpdate('${b._id}')">Select</button>
-                            <a href="customer.html?token=${b.batchNumber}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
-                        </td>
-                    </tr>
-                `).join('');
+                applyStockFilters();
 
                 // Load retailer history
                 const hist = await api('/api/retailer/history');
@@ -215,6 +219,43 @@
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        function applyStockFilters() {
+            const stockBody = document.getElementById('stockTableBody');
+            const search = (document.getElementById('stockSearchInput')?.value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('stockStatusFilter')?.value || 'ALL';
+
+            let list = [...availableBatches];
+            if (statusFilter !== 'ALL') {
+                list = list.filter(b => b.currentStatus === statusFilter);
+            }
+            if (search) {
+                list = list.filter(b =>
+                    (b.batchNumber && b.batchNumber.toLowerCase().includes(search)) ||
+                    (b.medicineName && b.medicineName.toLowerCase().includes(search)) ||
+                    (b.manufacturerName && b.manufacturerName.toLowerCase().includes(search))
+                );
+            }
+
+            if (list.length === 0) {
+                stockBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b;">No matching medicine stock found.</td></tr>';
+                return;
+            }
+
+            stockBody.innerHTML = list.map(b => `
+                <tr>
+                    <td><b>${b.batchNumber}</b></td>
+                    <td>${b.medicineName}</td>
+                    <td>${b.manufacturerName || 'Authorized Manufacturer'}</td>
+                    <td>${b.expiryDate || b.expDate}</td>
+                    <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                    <td>
+                        <button class="btn-sm btn-secondary" onclick="selectBatchForUpdate('${b._id}')">Select</button>
+                        <a href="customer.html?token=${b.batchNumber}" target="_blank" class="btn-sm btn-secondary">Inspect</a>
+                    </td>
+                </tr>
+            `).join('');
         }
 
         function selectBatchForUpdate(id) {

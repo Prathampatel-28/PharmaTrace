@@ -244,17 +244,22 @@ exports.getAllMedicines = async (req, res) => {
 
 exports.getMyBatches = async (req, res) => {
     try {
+        const userIdStr = req.user._id ? req.user._id.toString() : '';
+        const isAdmin = req.user.role === 'admin';
         let batches = [];
+
         if (isMongoConnected()) {
-            const query = { manufacturerId: req.user._id, isDeleted: false };
+            const query = isAdmin ? { isDeleted: false } : { manufacturerId: req.user._id, isDeleted: false };
             batches = await Medicine.find(query).sort({ createdAt: -1 });
+        } else {
+            const list = getFallbackMedicines();
+            batches = isAdmin ? list : list.filter(m => m.manufacturerId && m.manufacturerId.toString() === userIdStr);
         }
-        if (!batches || batches.length === 0) {
-            batches = getFallbackMedicines();
-        }
-        res.json(batches);
+
+        res.json(batches || []);
     } catch (error) {
-        res.json(getFallbackMedicines());
+        console.error('getMyBatches error:', error);
+        res.status(500).json({ message: 'Could not fetch your registered batches.' });
     }
 };
 
@@ -271,10 +276,29 @@ exports.getBatchById = async (req, res) => {
         if (!medicine) {
             return res.status(404).json({ message: 'Medicine batch not found.' });
         }
+
+        // Manufacturer data isolation: A manufacturer cannot inspect another manufacturer's batch via API
+        if (req.user && req.user.role === 'manufacturer') {
+            const userMfgId = req.user._id.toString();
+            const medMfgId = medicine.manufacturerId ? medicine.manufacturerId.toString() : '';
+            if (medMfgId && medMfgId !== userMfgId) {
+                return res.status(403).json({ message: 'Forbidden: Access denied to another manufacturer\'s product.' });
+            }
+        }
+
         res.json(medicine);
     } catch (error) {
         const found = findFallbackMedicine(req.params.id);
-        if (found) return res.json(found);
+        if (found) {
+            if (req.user && req.user.role === 'manufacturer') {
+                const userMfgId = req.user._id.toString();
+                const medMfgId = found.manufacturerId ? found.manufacturerId.toString() : '';
+                if (medMfgId && medMfgId !== userMfgId) {
+                    return res.status(403).json({ message: 'Forbidden: Access denied to another manufacturer\'s product.' });
+                }
+            }
+            return res.json(found);
+        }
         res.status(404).json({ message: 'Medicine batch not found.' });
     }
 };
@@ -326,6 +350,15 @@ exports.getQrCode = async (req, res) => {
 
         if (!medicine) {
             return res.status(404).json({ message: `Medicine batch "${idParam}" not found.` });
+        }
+
+        // Ownership guard for manufacturers: A manufacturer cannot inspect another manufacturer's QR code
+        if (req.user && req.user.role === 'manufacturer') {
+            const userMfgId = req.user._id ? req.user._id.toString() : '';
+            const medMfgId = medicine.manufacturerId ? medicine.manufacturerId.toString() : '';
+            if (medMfgId && medMfgId !== userMfgId) {
+                return res.status(403).json({ message: 'Forbidden: Access denied to another manufacturer\'s QR code.' });
+            }
         }
 
         const token = medicine.verificationToken || medicine._id || medicine.batchNumber;

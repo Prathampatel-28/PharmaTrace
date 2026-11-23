@@ -39,6 +39,17 @@ const defaultUsers = [
         accountStatus: 'active',
         passwordPlain: 'Password@123',
         phone: '+91 99999 88888'
+    },
+    {
+        _id: '673aa1010000000000000005',
+        name: 'BioCare Laboratories Ltd',
+        email: 'biocare@manufacturer.com',
+        role: 'manufacturer',
+        organization: 'BioCare Research & Formulations Hub',
+        licenseNumber: 'MFG/FDA/2026/0412',
+        accountStatus: 'active',
+        passwordPlain: 'Password@123',
+        phone: '+91 97654 32109'
     }
 ];
 

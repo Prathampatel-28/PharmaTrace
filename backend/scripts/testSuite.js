@@ -136,6 +136,35 @@ async function runTestSuite() {
         const audit = await request('/api/admin/audit-logs', {}, null, adminCookie);
         assert(audit.status === 200 && audit.body.logs.length > 0, `14. System Audit Logs Stream (Recorded: ${audit.body.logs.length} events)`);
 
+        // Test 15: Multi-Tenant Manufacturer A Isolation
+        const mfgABatches = await request('/api/medicines/my-batches', {}, null, mfgCookie);
+        const mfgAHasBioCare = mfgABatches.body.some(b => b.batchNumber === 'AMX-2026-01');
+        assert(mfgABatches.status === 200 && !mfgAHasBioCare, '15. DATA ISOLATION: Manufacturer A (Apex) CANNOT see Manufacturer B (BioCare) batches');
+
+        // Test 16: Multi-Tenant Manufacturer B Login & Visibility
+        const mfgBLogin = await request('/api/auth/login', { method: 'POST' }, {
+            email: 'biocare@manufacturer.com',
+            password: 'Password@123'
+        });
+        assert(mfgBLogin.status === 200 && mfgBLogin.body.user.role === 'manufacturer', '16. Manufacturer B (BioCare Labs) Authentication');
+        const mfgBCookie = mfgBLogin.cookie;
+
+        const mfgBBatches = await request('/api/medicines/my-batches', {}, null, mfgBCookie);
+        const mfgBHasOwn = mfgBBatches.body.some(b => b.batchNumber === 'AMX-2026-01');
+        const mfgBHasApex = mfgBBatches.body.some(b => b.batchNumber === newBatchNumber || b.batchNumber === 'DL-7');
+        assert(mfgBBatches.status === 200 && mfgBHasOwn && !mfgBHasApex, '17. DATA ISOLATION: Manufacturer B sees ONLY their own batches and zero Apex batches');
+
+        // Test 17: Cross-Tenant Protection (403 Forbidden)
+        const crossInspect = await request(`/api/medicines/${createdMed._id}`, {}, null, mfgBCookie);
+        assert(crossInspect.status === 403, '18. CROSS-TENANT SECURITY: Manufacturer B blocked with 403 Forbidden from querying Manufacturer A product');
+
+        const crossQr = await request(`/api/medicines/${createdMed._id}/qr`, {}, null, mfgBCookie);
+        assert(crossQr.status === 403, '19. CROSS-TENANT SECURITY: Manufacturer B blocked with 403 Forbidden from generating Manufacturer A QR code');
+
+        // Test 18: Public Customer Access Remains Unblocked
+        const publicQr = await request(`/api/qr/${createdMed.verificationToken}`);
+        assert(publicQr.status === 200 && publicQr.body.isAuthentic, '20. PUBLIC ACCESS: Unauthenticated patient can still verify genuine medicine');
+
         console.log(`\n========================================================`);
         console.log(`🏁 TEST SUITE COMPLETE: ${passCount} Passed, ${failCount} Failed.`);
         console.log(`========================================================\n`);

@@ -5,215 +5,538 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manufacturer Portal – PharmaTrace</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .mfg-page-section {
+            display: none;
+        }
+        .mfg-page-section.active {
+            display: block;
+        }
+        .tag-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border-radius: 9999px;
+            background: #e2e8f0;
+            color: #475569;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar"></nav>
 
-    <main class="container">
-        <header class="page-header">
-            <div>
-                <h1>🏭 Manufacturer Production Portal</h1>
-                <p>Register certified medicine batches, generate cryptographic QR verification tokens, and print compliance labels</p>
+    <div class="dashboard-layout">
+        <!-- 1. ENTERPRISE SIDEBAR NAVIGATION -->
+        <aside class="sidebar">
+            <div class="sidebar-brand-badge">
+                <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 700; margin-bottom: 2px;">
+                    🏭 Certified Manufacturer
+                </div>
+                <div id="sidebarMfgName" class="sidebar-company-name">Manufacturer Portal</div>
+                <div id="sidebarMfgLicense" class="sidebar-company-meta">License: Verifying...</div>
+                <div id="sidebarMfgOrg" class="sidebar-company-meta" style="color: #64748b; font-size: 0.7rem;">Facility: Loading...</div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-secondary" onclick="loadMyBatches()">🔄 Refresh</button>
-                <a class="btn" href="#registerSection">+ New Batch</a>
+
+            <ul class="sidebar-nav">
+                <li>
+                    <button class="sidebar-link active" onclick="showMfgSection('overview', this)">
+                        <span>📊</span> <span>Dashboard Overview</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="sidebar-link" onclick="showMfgSection('products', this)">
+                        <span>📦</span> <span>My Products (<span id="sidebarBatchCount">0</span>)</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="sidebar-link" onclick="showMfgSection('register', this)">
+                        <span>➕</span> <span>Register New Batch</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="sidebar-link" onclick="showMfgSection('qrManager', this)">
+                        <span>📱</span> <span>QR Label Manager</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 12px; padding: 0 4px;">
+                    Logged in as: <b id="sidebarUserName" style="color: #cbd5e1;">Manufacturer</b>
+                </div>
+                <button class="sidebar-link" style="color: #ef4444;" onclick="logout()">
+                    <span>🚪</span> <span>Sign Out</span>
+                </button>
             </div>
-        </header>
+        </aside>
 
-        <!-- Metric Summary for Manufacturer -->
-        <div class="stats-grid">
-            <div class="metric-card">
-                <div class="metric-icon-box icon-amber">📦</div>
-                <div class="metric-info"><b>My Batches</b><h2 id="mfgTotalBatches">0</h2></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon-box icon-green">✅</div>
-                <div class="metric-info"><b>In Distribution</b><h2 id="mfgInStock">0</h2></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon-box icon-purple">🏷️</div>
-                <div class="metric-info"><b>Dispensed / Sold</b><h2 id="mfgSold">0</h2></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon-box icon-red">⚠️</div>
-                <div class="metric-info"><b>Recalled Batches</b><h2 id="mfgRecalled">0</h2></div>
-            </div>
-        </div>
+        <!-- 2. MAIN CONTENT AREA -->
+        <main class="content-area">
+            <!-- Global Alert -->
+            <div id="mfgAlert" class="alert"></div>
 
-        <div id="mfgAlert" class="alert"></div>
-
-        <!-- 1. MY BATCHES TABLE -->
-        <div class="card">
-            <div class="card-title">Registered Production Batches</div>
-            <div class="card-subtitle">List of pharmaceutical batches registered under your certified manufacturer license.</div>
-
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Batch No.</th>
-                            <th>Medicine & Generic Name</th>
-                            <th>Dosage & Packaging</th>
-                            <th>Quantity</th>
-                            <th>Mfg / Exp Date</th>
-                            <th>Status</th>
-                            <th>QR & Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="myBatchesTableBody">
-                        <tr><td colspan="7" style="text-align:center;padding:24px;">Loading your production batches...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 2. REGISTER NEW MEDICINE BATCH FORM -->
-        <div id="registerSection" class="card" style="max-width: 850px; margin: 30px auto;">
-            <div class="card-title">Register New Medicine Batch</div>
-            <div class="card-subtitle">All batches are cryptographically sealed into MongoDB with a unique verification token.</div>
-
-            <div id="regMessage" class="alert"></div>
-
-            <form id="manufacturerForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="medicineName">Medicine Commercial Name *</label>
-                        <input id="medicineName" type="text" placeholder="e.g. Paracetamol 650mg" required>
+            <!-- SECTION A: DASHBOARD OVERVIEW -->
+            <section id="section-overview" class="mfg-page-section active">
+                <header class="page-header" style="margin-top: 0;">
+                    <div>
+                        <h1 id="welcomeHeading">🏭 Manufacturer Production Dashboard</h1>
+                        <p>Authenticated workspace for registering pharmaceutical batches and tracking your product catalog.</p>
                     </div>
-                    <div class="form-group">
-                        <label for="genericName">Generic / Chemical Name</label>
-                        <input id="genericName" type="text" placeholder="e.g. Paracetamol IP">
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="loadMyBatches()">🔄 Refresh</button>
+                        <button class="btn" onclick="showMfgSection('register', document.querySelectorAll('.sidebar-link')[2])">+ New Batch</button>
+                    </div>
+                </header>
+
+                <!-- Metric Summary -->
+                <div class="stats-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-amber">📦</div>
+                        <div class="metric-info">
+                            <b>Total Batches Registered</b>
+                            <h2 id="mfgTotalBatches">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-green">🚚</div>
+                        <div class="metric-info">
+                            <b>In Supply Chain</b>
+                            <h2 id="mfgInDistribution">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-purple">🏷️</div>
+                        <div class="metric-info">
+                            <b>Sold to Patients</b>
+                            <h2 id="mfgSold">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon-box icon-red">⚠️</div>
+                        <div class="metric-info">
+                            <b>Recalled Batches</b>
+                            <h2 id="mfgRecalled">0</h2>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="batchNumber">Unique Batch Number *</label>
-                        <input id="batchNumber" type="text" placeholder="e.g. PCM-2026-009" required>
+                <!-- Recently Registered Products Quick View -->
+                <div class="card" style="margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div>
+                            <div class="card-title">Recently Registered Batches</div>
+                            <div class="card-subtitle">Your latest production batches in the PharmaTrace network.</div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="showMfgSection('products', document.querySelectorAll('.sidebar-link')[1])">
+                            View All Products →
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label for="licenseNumber">Drug Manufacturing License No.</label>
-                        <input id="licenseNumber" type="text" placeholder="e.g. MFG/FDA/2026/0891">
-                    </div>
-                </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="mfgDate">Manufacturing Date *</label>
-                        <input id="mfgDate" type="date" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="expDate">Expiry Date *</label>
-                        <input id="expDate" type="date" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="dosage">Dosage Information</label>
-                        <input id="dosage" type="text" placeholder="e.g. 650mg oral tablet every 6 hours">
-                    </div>
-                    <div class="form-group">
-                        <label for="packaging">Packaging Format</label>
-                        <input id="packaging" type="text" placeholder="e.g. Blister pack of 15 tablets">
-                    </div>
-                    <div class="form-group">
-                        <label for="quantity">Quantity Manufactured</label>
-                        <input id="quantity" type="number" value="1000" min="1">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Batch No.</th>
+                                    <th>Medicine Name</th>
+                                    <th>Quantity</th>
+                                    <th>Mfg Date</th>
+                                    <th>Expiry Date</th>
+                                    <th>Current Status</th>
+                                    <th>Label & QR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentBatchesBody">
+                                <tr><td colspan="7" style="text-align: center; padding: 24px;">Loading recent production batches...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </section>
 
-                <div class="form-group">
-                    <label for="composition">Active Ingredients & Composition</label>
-                    <input id="composition" type="text" placeholder="e.g. Each uncoated tablet contains: Paracetamol IP 650mg">
+            <!-- SECTION B: MY PRODUCTS (CATALOG WITH SEARCH & FILTERS) -->
+            <section id="section-products" class="mfg-page-section">
+                <header class="page-header" style="margin-top: 0;">
+                    <div>
+                        <h1>📦 My Registered Products Catalog</h1>
+                        <p>Strictly isolated database of batches manufactured by your licensed organization.</p>
+                    </div>
+                    <button class="btn" onclick="showMfgSection('register', document.querySelectorAll('.sidebar-link')[2])">+ Add New Medicine</button>
+                </header>
+
+                <!-- Filter & Search Toolbar -->
+                <div class="filter-toolbar">
+                    <input id="productSearchInput" class="filter-search-input" type="text" placeholder="🔍 Search by batch number, brand name, or generic composition..." oninput="applyBatchFilters()">
+                    
+                    <select id="statusFilterSelect" class="filter-select" onchange="applyBatchFilters()">
+                        <option value="ALL">All Supply Chain Statuses</option>
+                        <option value="Manufactured">Manufactured (At Plant)</option>
+                        <option value="Received">Received (In Transit / Warehouse)</option>
+                        <option value="In Stock">In Stock (At Pharmacy)</option>
+                        <option value="Sold">Sold (Dispensed to Patient)</option>
+                        <option value="Recalled">Recalled (Safety Quarantine)</option>
+                    </select>
+
+                    <select id="sortFilterSelect" class="filter-select" onchange="applyBatchFilters()">
+                        <option value="NEWEST">Sort: Newest First</option>
+                        <option value="OLDEST">Sort: Oldest First</option>
+                        <option value="EXPIRY">Sort: Expiry Date (Soonest)</option>
+                        <option value="NAME">Sort: Product Name (A-Z)</option>
+                    </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="storageInstructions">Storage & Handling Instructions</label>
-                    <input id="storageInstructions" type="text" value="Store in a cool, dry place below 25°C. Protect from light.">
+                <!-- Main Products Table -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="font-size: 0.85rem; color: #64748b;">
+                            Showing <b id="filteredCountText" style="color: #0f172a;">0</b> product batches
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Batch No.</th>
+                                    <th>Medicine Name & Generic</th>
+                                    <th>Dosage / Packaging</th>
+                                    <th>Quantity</th>
+                                    <th>Mfg / Exp Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myBatchesTableBody">
+                                <tr><td colspan="7" style="text-align: center; padding: 24px;">Loading your batches...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            </section>
 
-                <div class="form-group">
-                    <label for="description">Production Batch Description / Quality Notes</label>
-                    <textarea id="description" rows="2" placeholder="Quality approval notes, sterile cleanroom batch reference..."></textarea>
+            <!-- SECTION C: REGISTER NEW MEDICINE BATCH -->
+            <section id="section-register" class="mfg-page-section">
+                <header class="page-header" style="margin-top: 0;">
+                    <div>
+                        <h1>➕ Register New Pharmaceutical Batch</h1>
+                        <p>Generate cryptographic QR tokens and bind the batch to your certified manufacturer identity.</p>
+                    </div>
+                </header>
+
+                <div class="card" style="max-width: 900px; margin: 0 auto;">
+                    <div class="card-title">Batch Manufacturing Specifications</div>
+                    <div class="card-subtitle">All entries are cryptographically signed and stored in the immutable traceability ledger.</div>
+
+                    <div id="regMessage" class="alert"></div>
+
+                    <form id="manufacturerForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="medicineName">Medicine Commercial Name *</label>
+                                <input id="medicineName" type="text" placeholder="e.g. Paracetamol 650mg" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="genericName">Generic / Chemical Name</label>
+                                <input id="genericName" type="text" placeholder="e.g. Paracetamol IP">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="batchNumber">Unique Batch Number *</label>
+                                <input id="batchNumber" type="text" placeholder="e.g. PCM-2026-009" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="licenseNumber">Drug Manufacturing License No. *</label>
+                                <input id="licenseNumber" type="text" placeholder="e.g. MFG/FDA/2026/0891" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mfgDate">Manufacturing Date *</label>
+                                <input id="mfgDate" type="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expDate">Expiry Date *</label>
+                                <input id="expDate" type="date" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="dosage">Dosage Information</label>
+                                <input id="dosage" type="text" placeholder="e.g. 650mg oral tablet every 6 hours">
+                            </div>
+                            <div class="form-group">
+                                <label for="packaging">Packaging Format</label>
+                                <input id="packaging" type="text" placeholder="e.g. Blister pack of 15 tablets">
+                            </div>
+                            <div class="form-group">
+                                <label for="quantity">Quantity Manufactured *</label>
+                                <input id="quantity" type="number" value="1000" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="composition">Active Ingredients & Chemical Formulation</label>
+                            <input id="composition" type="text" placeholder="e.g. Each uncoated tablet contains Paracetamol IP 650mg">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="storageInstructions">Storage & Handling Conditions</label>
+                            <input id="storageInstructions" type="text" value="Store in a cool, dry place below 25°C. Protect from direct sunlight.">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Production Notes / Quality Assurance Sign-off</label>
+                            <textarea id="description" rows="2" placeholder="Quality approval certification, cleanroom batch reference, sterilization notes..."></textarea>
+                        </div>
+
+                        <button id="registerSubmitBtn" class="btn btn-block" type="submit" style="padding: 12px; font-size: 0.95rem;">
+                            Register Batch & Generate Cryptographic QR
+                        </button>
+                    </form>
                 </div>
+            </section>
 
-                <button class="btn btn-block" type="submit">Register Batch & Generate Cryptographic QR</button>
-            </form>
-        </div>
-    </main>
+            <!-- SECTION D: QR CODE & LABEL MANAGER -->
+            <section id="section-qrManager" class="mfg-page-section">
+                <header class="page-header" style="margin-top: 0;">
+                    <div>
+                        <h1>📱 Packaging QR Code & Label Center</h1>
+                        <p>Generate, preview, download, and print compliant pharmaceutical serialization labels.</p>
+                    </div>
+                </header>
 
-    <!-- QR & Print Label Modal -->
+                <div class="card" style="max-width: 800px; margin: 0 auto; text-align: center;">
+                    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 20px;">
+                        Select any registered batch from your catalog below to inspect its packaging verification label:
+                    </p>
+                    <div style="max-width: 480px; margin: 0 auto 24px auto;">
+                        <select id="qrBatchSelector" class="filter-select" style="width: 100%;" onchange="if(this.value) viewBatchQr(this.value)">
+                            <option value="">-- Choose a Batch to View QR & Label --</option>
+                        </select>
+                    </div>
+
+                    <div id="qrManagerPreviewArea" style="display: none;">
+                        <div id="printLabelArea" style="border: 2px dashed #0284c7; border-radius: 12px; padding: 24px; background: #fff; max-width: 460px; margin: 0 auto 20px auto; text-align: center;">
+                            <div style="font-size: 0.75rem; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+                                PharmaTrace Authenticated Medicine
+                            </div>
+                            <h2 id="mgrMedName" style="font-size: 1.35rem; color: #0f172a; margin-bottom: 2px;">Medicine Name</h2>
+                            <div id="mgrGeneric" style="color: #64748b; font-size: 0.85rem; margin-bottom: 14px;">Generic Composition</div>
+
+                            <img id="mgrQrImg" alt="QR Code" style="width: 220px; height: 220px; object-fit: contain; margin: 0 auto; display: block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px;">
+
+                            <div style="margin-top: 14px; font-size: 0.85rem; line-height: 1.6; color: #334155; text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px;">
+                                <div><b>Batch Number:</b> <span id="mgrBatch"></span></div>
+                                <div><b>Mfg Date:</b> <span id="mgrMfg"></span> | <b>Exp Date:</b> <span id="mgrExp"></span></div>
+                                <div><b>Manufacturer:</b> <span id="mgrMfgName"></span></div>
+                                <div id="mgrStorage" style="font-size: 0.75rem; color: #64748b; margin-top: 4px;"></div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <a id="mgrDownloadBtn" class="btn btn-secondary btn-sm" download="medicine-qr.png">💾 Download PNG</a>
+                            <button class="btn btn-sm" onclick="window.print()">🖨️ Print Label</button>
+                            <a id="mgrVerifyLink" class="btn btn-secondary btn-sm" target="_blank">🔗 Test Authenticity Scan</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- QR & Print Label Modal (Triggerable from tables) -->
     <div id="qrModal" class="modal-backdrop">
         <div class="modal-box" style="max-width: 520px;">
             <div class="modal-header">
-                <h3>Medicine Packaging Label & QR</h3>
+                <h3>Medicine Packaging Label & Serialization QR</h3>
                 <button class="modal-close" onclick="closeModal('qrModal')">&times;</button>
             </div>
             <div class="modal-body" style="text-align: center;">
-                <div id="printLabelArea" style="border: 2px dashed #0284c7; border-radius: 10px; padding: 20px; background: #fff; margin-bottom: 18px;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">PharmaTrace Authenticated Medicine</div>
-                    <h2 id="modalMedName" style="font-size: 1.3rem; color: #0f172a; margin-bottom: 4px;">Paracetamol 650mg</h2>
-                    <div id="modalGeneric" style="color: #64748b; font-size: 0.85rem; margin-bottom: 12px;">Paracetamol IP</div>
+                <div style="border: 2px dashed #0284c7; border-radius: 10px; padding: 20px; background: #fff; margin-bottom: 18px;">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+                        PharmaTrace Authenticated Medicine
+                    </div>
+                    <h2 id="modalMedName" style="font-size: 1.3rem; color: #0f172a; margin-bottom: 2px;">Medicine Name</h2>
+                    <div id="modalGeneric" style="color: #64748b; font-size: 0.85rem; margin-bottom: 12px;">Generic Name</div>
                     
-                    <img id="modalQrImg" alt="QR Code" style="width: 220px; height: 220px; object-fit: contain; margin: 0 auto; display: block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px;">
+                    <img id="modalQrImg" alt="QR Code" style="width: 220px; height: 220px; object-fit: contain; margin: 0 auto; display: block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px;">
 
-                    <div style="margin-top: 14px; font-size: 0.85rem; line-height: 1.5; color: #334155;">
-                        <div><b>Batch No:</b> <span id="modalBatch"></span></div>
+                    <div style="margin-top: 14px; font-size: 0.85rem; line-height: 1.5; color: #334155; text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px;">
+                        <div><b>Batch Number:</b> <span id="modalBatch"></span></div>
                         <div><b>Mfg Date:</b> <span id="modalMfg"></span> | <b>Exp Date:</b> <span id="modalExp"></span></div>
+                        <div><b>Licensed Manufacturer:</b> <span id="modalMfgName"></span></div>
                         <div id="modalStorage" style="font-size: 0.75rem; color: #64748b; margin-top: 4px;"></div>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 10px; justify-content: center;">
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                     <a id="modalDownloadBtn" class="btn btn-secondary btn-sm" download="medicine-qr.png">💾 Download PNG</a>
                     <button class="btn btn-sm" onclick="window.print()">🖨️ Print Label</button>
-                    <a id="modalVerifyLink" class="btn btn-secondary btn-sm" target="_blank">🔗 Test Scan</a>
+                    <a id="modalVerifyLink" class="btn btn-secondary btn-sm" target="_blank">🔗 Test Authenticity Scan</a>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Tracking History Modal -->
+    <div id="historyModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Supply Chain Checkpoints: <span id="histModalBatch"></span></h3>
+                <button class="modal-close" onclick="closeModal('historyModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="histModalContent" style="padding: 10px 0;"></div>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <p>© 2026 PharmaTrace • Certified Manufacturer Portal</p>
+        <p>© 2026 PharmaTrace • Enterprise Pharmaceutical Traceability Platform</p>
     </footer>
 
     <script src="script.js"></script>
     <script>
         let myBatches = [];
+        let loggedInUser = null;
+
+        function showMfgSection(sectionId, btn) {
+            document.querySelectorAll('.mfg-page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+
+            const target = document.getElementById('section-' + sectionId);
+            if (target) target.classList.add('active');
+            if (btn) btn.classList.add('active');
+
+            if (sectionId === 'qrManager') {
+                populateQrSelector();
+            }
+        }
 
         async function loadMyBatches() {
             const tbody = document.getElementById('myBatchesTableBody');
+            const recentBody = document.getElementById('recentBatchesBody');
             try {
-                myBatches = await api('/api/medicines/my/batches');
+                // Strictly fetches only batches owned by the authenticated manufacturer
+                myBatches = await api('/api/medicines/my-batches');
 
+                // Update metric counters
                 document.getElementById('mfgTotalBatches').textContent = myBatches.length;
-                document.getElementById('mfgInStock').textContent = myBatches.filter(b => b.currentStatus === 'In Stock').length;
-                document.getElementById('mfgSold').textContent = myBatches.filter(b => b.currentStatus === 'Sold').length;
-                document.getElementById('mfgRecalled').textContent = myBatches.filter(b => b.currentStatus === 'Recalled').length;
+                document.getElementById('sidebarBatchCount').textContent = myBatches.length;
 
-                if (myBatches.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;">No batches registered yet. Use the form below to register your first pharmaceutical batch.</td></tr>';
-                    return;
+                const inDistCount = myBatches.filter(b => b.currentStatus === 'Received' || b.currentStatus === 'In Stock').length;
+                const soldCount = myBatches.filter(b => b.currentStatus === 'Sold').length;
+                const recallCount = myBatches.filter(b => b.currentStatus === 'Recalled').length;
+
+                document.getElementById('mfgInDistribution').textContent = inDistCount;
+                document.getElementById('mfgSold').textContent = soldCount;
+                document.getElementById('mfgRecalled').textContent = recallCount;
+
+                // Render Recently Added (max 5)
+                const recentList = myBatches.slice(0, 5);
+                if (recentList.length === 0) {
+                    recentBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px;">No batches registered yet. Click "+ New Batch" to add your first production batch.</td></tr>';
+                } else {
+                    recentBody.innerHTML = recentList.map(b => `
+                        <tr>
+                            <td><b>${b.batchNumber}</b></td>
+                            <td>${b.medicineName}</td>
+                            <td>${b.quantity || 1000}</td>
+                            <td>${b.manufacturingDate || b.mfgDate}</td>
+                            <td>${b.expiryDate || b.expDate}</td>
+                            <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                            <td>
+                                <button class="btn-sm btn-secondary" onclick="viewBatchQr('${b._id}')">📱 Label & QR</button>
+                            </td>
+                        </tr>
+                    `).join('');
                 }
 
-                tbody.innerHTML = myBatches.map(b => `
-                    <tr>
-                        <td><b>${b.batchNumber}</b></td>
-                        <td>${b.medicineName}<br><span style="color:#64748b;font-size:0.8rem;">${b.genericName || ''}</span></td>
-                        <td>${b.dosage || 'Standard'}<br><span style="color:#94a3b8;font-size:0.75rem;">${b.packaging}</span></td>
-                        <td>${b.quantity || 1000}</td>
-                        <td>Mfg: ${b.manufacturingDate || b.mfgDate}<br>Exp: ${b.expiryDate || b.expDate}</td>
-                        <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
-                        <td>
-                            <button class="btn-sm btn-secondary" onclick="viewBatchQr('${b._id}')">📱 Label & QR</button>
-                        </td>
-                    </tr>
-                `).join('');
+                // Render main filtered list
+                applyBatchFilters();
+                populateQrSelector();
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444;text-align:center;">Failed to load batches: ${err.message}</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color: #ef4444; text-align: center;">Failed to load batches: ${err.message}</td></tr>`;
             }
+        }
+
+        function applyBatchFilters() {
+            const tbody = document.getElementById('myBatchesTableBody');
+            const search = (document.getElementById('productSearchInput').value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('statusFilterSelect').value;
+            const sortFilter = document.getElementById('sortFilterSelect').value;
+
+            let filtered = [...myBatches];
+
+            // 1. Status Filter
+            if (statusFilter !== 'ALL') {
+                filtered = filtered.filter(b => b.currentStatus === statusFilter);
+            }
+
+            // 2. Search query filter
+            if (search) {
+                filtered = filtered.filter(b => 
+                    (b.batchNumber && b.batchNumber.toLowerCase().includes(search)) ||
+                    (b.medicineName && b.medicineName.toLowerCase().includes(search)) ||
+                    (b.genericName && b.genericName.toLowerCase().includes(search))
+                );
+            }
+
+            // 3. Sorting
+            if (sortFilter === 'NEWEST') {
+                filtered.sort((a, b) => new Date(b.createdAt || b.manufacturingDate || 0) - new Date(a.createdAt || a.manufacturingDate || 0));
+            } else if (sortFilter === 'OLDEST') {
+                filtered.sort((a, b) => new Date(a.createdAt || a.manufacturingDate || 0) - new Date(b.createdAt || b.manufacturingDate || 0));
+            } else if (sortFilter === 'EXPIRY') {
+                filtered.sort((a, b) => new Date(a.expiryDate || a.expDate || 0) - new Date(b.expiryDate || b.expDate || 0));
+            } else if (sortFilter === 'NAME') {
+                filtered.sort((a, b) => (a.medicineName || '').localeCompare(b.medicineName || ''));
+            }
+
+            document.getElementById('filteredCountText').textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">No matching pharmaceutical batches found in your registered catalog.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(b => `
+                <tr>
+                    <td><b>${b.batchNumber}</b></td>
+                    <td>
+                        <span style="font-weight: 600; color: #0f172a;">${b.medicineName}</span>
+                        ${b.genericName ? `<div style="color: #64748b; font-size: 0.8rem;">${b.genericName}</div>` : ''}
+                    </td>
+                    <td>
+                        <span style="font-size: 0.85rem;">${b.dosage || 'Standard'}</span>
+                        <div style="color: #94a3b8; font-size: 0.75rem;">${b.packaging || 'Commercial Pack'}</div>
+                    </td>
+                    <td>${Number(b.quantity || 1000).toLocaleString()}</td>
+                    <td>
+                        <div style="font-size: 0.82rem;">Mfg: ${b.manufacturingDate || b.mfgDate}</div>
+                        <div style="font-size: 0.82rem; color: #64748b;">Exp: ${b.expiryDate || b.expDate}</div>
+                    </td>
+                    <td><span class="${getStatusBadgeClass(b.currentStatus)}">${b.currentStatus}</span></td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-sm btn-secondary" onclick="viewBatchQr('${b._id}')" title="Packaging Label">📱 Label</button>
+                            <button class="btn-sm btn-secondary" onclick="viewBatchHistory('${b._id}')" title="Supply Chain History">📜 Track</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function populateQrSelector() {
+            const selector = document.getElementById('qrBatchSelector');
+            if (!selector) return;
+            const currentVal = selector.value;
+            selector.innerHTML = '<option value="">-- Choose a Batch to View QR & Label --</option>' + 
+                myBatches.map(b => `<option value="${b._id}" ${b._id === currentVal ? 'selected' : ''}>${b.batchNumber} – ${b.medicineName} (${b.currentStatus})</option>`).join('');
         }
 
         async function viewBatchQr(id) {
@@ -221,17 +544,37 @@
                 const b = myBatches.find(x => x._id === id || x.batchNumber === id);
                 const qr = await api(`/api/medicines/${id}/qr`);
 
+                // 1. Update In-Modal View
                 document.getElementById('modalMedName').textContent = b ? b.medicineName : (qr.medicineName || 'Medicine');
                 document.getElementById('modalGeneric').textContent = b?.genericName || '';
                 document.getElementById('modalBatch').textContent = b?.batchNumber || qr.batchNumber || '';
                 document.getElementById('modalMfg').textContent = b?.manufacturingDate || b?.mfgDate || '';
                 document.getElementById('modalExp').textContent = b?.expiryDate || b?.expDate || '';
-                document.getElementById('modalStorage').textContent = b?.storageInstructions || '';
+                document.getElementById('modalMfgName').textContent = b?.manufacturerName || loggedInUser?.organization || 'Authorized Manufacturer';
+                document.getElementById('modalStorage').textContent = b?.storageInstructions || 'Store in a cool, dry place.';
 
                 document.getElementById('modalQrImg').src = qr.qrCode;
                 document.getElementById('modalDownloadBtn').href = qr.qrCode;
                 document.getElementById('modalDownloadBtn').download = `qr-${b?.batchNumber || qr.batchNumber || 'medicine'}.png`;
                 document.getElementById('modalVerifyLink').href = qr.verificationUrl;
+
+                // 2. Also update in QR Manager section view
+                const mgrArea = document.getElementById('qrManagerPreviewArea');
+                if (mgrArea) {
+                    mgrArea.style.display = 'block';
+                    document.getElementById('mgrMedName').textContent = b ? b.medicineName : (qr.medicineName || 'Medicine');
+                    document.getElementById('mgrGeneric').textContent = b?.genericName || '';
+                    document.getElementById('mgrBatch').textContent = b?.batchNumber || qr.batchNumber || '';
+                    document.getElementById('mgrMfg').textContent = b?.manufacturingDate || b?.mfgDate || '';
+                    document.getElementById('mgrExp').textContent = b?.expiryDate || b?.expDate || '';
+                    document.getElementById('mgrMfgName').textContent = b?.manufacturerName || loggedInUser?.organization || 'Authorized Manufacturer';
+                    document.getElementById('mgrStorage').textContent = b?.storageInstructions || 'Store in a cool, dry place.';
+
+                    document.getElementById('mgrQrImg').src = qr.qrCode;
+                    document.getElementById('mgrDownloadBtn').href = qr.qrCode;
+                    document.getElementById('mgrDownloadBtn').download = `qr-${b?.batchNumber || qr.batchNumber || 'medicine'}.png`;
+                    document.getElementById('mgrVerifyLink').href = qr.verificationUrl;
+                }
 
                 openModal('qrModal');
             } catch (err) {
@@ -239,10 +582,50 @@
             }
         }
 
+        async function viewBatchHistory(id) {
+            try {
+                const b = myBatches.find(x => x._id === id || x.batchNumber === id);
+                if (!b) return;
+                document.getElementById('histModalBatch').textContent = b.batchNumber + ' (' + b.medicineName + ')';
+                const cont = document.getElementById('histModalContent');
+
+                const checkpoints = b.checkpoints && b.checkpoints.length > 0 ? b.checkpoints : [
+                    {
+                        stage: 'Manufacturer',
+                        status: 'Manufactured',
+                        location: b.manufacturerName || 'Production Facility',
+                        description: 'Batch registered and cryptographically sealed.',
+                        timestamp: b.createdAt || new Date()
+                    }
+                ];
+
+                cont.innerHTML = checkpoints.map((cp, idx) => `
+                    <div style="padding: 12px; border-left: 3px solid #0284c7; background: #f8fafc; border-radius: 4px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <b style="color: #0f172a;">${idx + 1}. Stage: ${cp.stage || cp.status}</b>
+                            <span class="${getStatusBadgeClass(cp.status)}">${cp.status}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #475569; margin-top: 4px;">📍 ${cp.location || 'Location Not Recorded'}</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">${cp.description || ''}</div>
+                        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">🕒 ${new Date(cp.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+
+                openModal('historyModal');
+            } catch (err) {
+                alert('Could not load history: ' + err.message);
+            }
+        }
+
+        // Handle Register Form Submission
         document.getElementById('manufacturerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const msg = document.getElementById('regMessage');
             msg.style.display = 'none';
+            const btn = document.getElementById('registerSubmitBtn');
+            const orig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Registering batch & generating QR token...';
 
             const payload = {
                 medicineName: document.getElementById('medicineName').value.trim(),
@@ -264,20 +647,40 @@
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
-                showMessage(msg, `Batch ${saved.batchNumber} successfully registered! Opening label and QR code...`, 'success');
+                btn.disabled = false;
+                btn.textContent = orig;
+
+                showMessage(msg, `Batch ${saved.batchNumber} registered successfully! Opening packaging label...`, 'success');
                 document.getElementById('manufacturerForm').reset();
+                if (loggedInUser && loggedInUser.licenseNumber) {
+                    document.getElementById('licenseNumber').value = loggedInUser.licenseNumber;
+                }
                 await loadMyBatches();
                 viewBatchQr(saved._id);
             } catch (err) {
+                btn.disabled = false;
+                btn.textContent = orig;
                 showMessage(msg, err.message, 'error');
             }
         });
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const user = await requireAuth(['manufacturer', 'admin']);
-            if (!user) return;
+            loggedInUser = await requireAuth(['manufacturer', 'admin']);
+            if (!loggedInUser) return;
             renderNavbar('manufacturer');
-            if (user.licenseNumber) document.getElementById('licenseNumber').value = user.licenseNumber;
+
+            // Populate Manufacturer Brand Profile in Sidebar
+            const mfgName = loggedInUser.organization || loggedInUser.name;
+            document.getElementById('sidebarMfgName').textContent = mfgName;
+            document.getElementById('sidebarMfgLicense').textContent = 'License: ' + (loggedInUser.licenseNumber || 'Active / Verified');
+            document.getElementById('sidebarMfgOrg').textContent = 'Facility: ' + (loggedInUser.organization || 'Production Unit');
+            document.getElementById('sidebarUserName').textContent = loggedInUser.name;
+            document.getElementById('welcomeHeading').textContent = `🏭 ${mfgName} – Production Portal`;
+
+            if (loggedInUser.licenseNumber) {
+                document.getElementById('licenseNumber').value = loggedInUser.licenseNumber;
+            }
+
             loadMyBatches();
         });
     </script>
